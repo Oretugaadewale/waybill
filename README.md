@@ -41,7 +41,7 @@ You can type the number the way customers really do: `wb 1042 us` and `WB1042US`
 | Styling   | Tailwind CSS 4, self-hosted IBM Plex fonts                   |
 | Testing   | Vitest and React Testing Library                             |
 | Quality   | ESLint, Prettier, GitHub Actions CI                          |
-| Hosting   | Netlify                                                      |
+| Hosting   | Vercel                                                       |
 
 Tracking pages for known shipments are prerendered at build time with `generateStaticParams`. Unknown numbers render the not-found page.
 
