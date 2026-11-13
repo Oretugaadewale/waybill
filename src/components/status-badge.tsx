@@ -13,7 +13,9 @@ export function StatusBadge({ stage }: { stage: ShipmentStage }) {
     >
       <span
         aria-hidden="true"
-        className={delivered ? "h-2 w-2 rounded-full bg-signal" : "h-2 w-2 rounded-full bg-ink"}
+        className={
+          delivered ? "h-2 w-2 rounded-full bg-signal" : "h-2 w-2 rounded-full bg-ink"
+        }
       />
       {STAGE_LABELS[stage]}
     </span>

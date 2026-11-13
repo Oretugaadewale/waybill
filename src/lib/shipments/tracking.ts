@@ -84,14 +84,22 @@ export function progressSteps(shipment: Shipment): ProgressStep[] {
 
 /** Events newest first, for the timeline. */
 export function eventsNewestFirst(shipment: Shipment): TrackingEvent[] {
-  return [...shipment.events].sort(
-    (a, b) => Date.parse(b.at) - Date.parse(a.at),
-  );
+  return [...shipment.events].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
 }
 
 const MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
 /**

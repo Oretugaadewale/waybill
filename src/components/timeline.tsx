@@ -9,15 +9,18 @@ export function Timeline({ events }: { events: TrackingEvent[] }) {
         const { date, time } = formatEventTime(event.at);
         const latest = i === 0;
         return (
-          <li key={event.at} className="relative grid grid-cols-[1.25rem_1fr] gap-x-4 pb-6 last:pb-0">
+          <li
+            key={event.at}
+            className="relative grid grid-cols-[1.25rem_1fr] gap-x-4 pb-6 last:pb-0"
+          >
             <span aria-hidden="true" className="relative flex justify-center">
               <span
                 className={
                   latest && event.stage === "delivered"
                     ? "z-10 mt-1 h-4 w-4 rounded-full border-2 border-signal bg-signal-soft"
                     : latest
-                    ? "z-10 mt-1 h-4 w-4 rounded-full border-2 border-ink bg-tape"
-                    : "z-10 mt-1.5 h-3 w-3 rounded-full bg-ink"
+                      ? "z-10 mt-1 h-4 w-4 rounded-full border-2 border-ink bg-tape"
+                      : "z-10 mt-1.5 h-3 w-3 rounded-full bg-ink"
                 }
               />
               {i < events.length - 1 ? (

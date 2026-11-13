@@ -44,10 +44,7 @@ export default async function TrackPage({
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-10 sm:px-8 sm:py-14">
-      <Link
-        href="/"
-        className="text-sm font-medium underline underline-offset-4"
-      >
+      <Link href="/" className="text-sm font-medium underline underline-offset-4">
         Track another shipment
       </Link>
 

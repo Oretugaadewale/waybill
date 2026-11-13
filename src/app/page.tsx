@@ -17,8 +17,8 @@ export default function HomePage() {
             Where is my package?
           </h1>
           <p className="mt-4 max-w-md text-lg text-ink-soft">
-            Enter your tracking number to see where your shipment is, every scan
-            on its journey, and when it should arrive.
+            Enter your tracking number to see where your shipment is, every scan on its
+            journey, and when it should arrive.
           </p>
         </div>
 

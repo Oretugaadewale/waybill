@@ -9,10 +9,7 @@ interface RouteBandProps {
 
 /** The two hub codes, set big, the way they read on a printed waybill. */
 export function RouteBand({ origin, destination, size = "large" }: RouteBandProps) {
-  const codeClass =
-    size === "large"
-      ? "text-6xl sm:text-8xl"
-      : "text-5xl";
+  const codeClass = size === "large" ? "text-6xl sm:text-8xl" : "text-5xl";
 
   return (
     <div className="flex items-end justify-between gap-4">

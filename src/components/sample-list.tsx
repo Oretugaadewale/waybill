@@ -16,7 +16,8 @@ export function SampleList() {
               {s.trackingNumber}
             </span>
             <span className="text-sm text-ink-soft">
-              {s.origin.city} to {s.destination.city}, {STAGE_LABELS[currentStage(s)].toLowerCase()}
+              {s.origin.city} to {s.destination.city},{" "}
+              {STAGE_LABELS[currentStage(s)].toLowerCase()}
             </span>
           </Link>
         </li>

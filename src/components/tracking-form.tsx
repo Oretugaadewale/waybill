@@ -2,10 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useState, type FormEvent } from "react";
-import {
-  isValidTrackingNumber,
-  normalizeTrackingNumber,
-} from "@/lib/shipments/tracking";
+import { isValidTrackingNumber, normalizeTrackingNumber } from "@/lib/shipments/tracking";
 
 interface TrackingFormProps {
   defaultValue?: string;
@@ -28,7 +25,9 @@ export function TrackingForm({ defaultValue = "" }: TrackingFormProps) {
       return;
     }
     if (!isValidTrackingNumber(trackingNumber)) {
-      setError("Tracking numbers look like WB-1042-US. Check the number on your receipt.");
+      setError(
+        "Tracking numbers look like WB-1042-US. Check the number on your receipt.",
+      );
       return;
     }
 

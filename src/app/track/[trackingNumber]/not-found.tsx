@@ -8,8 +8,8 @@ export default function ShipmentNotFound() {
         No shipment matches that tracking number
       </h1>
       <p className="mt-3 text-lg text-ink-soft">
-        Check the number on your receipt and try again. Tracking numbers have a
-        WB prefix, four digits and a country code, like WB-1042-US.
+        Check the number on your receipt and try again. Tracking numbers have a WB prefix,
+        four digits and a country code, like WB-1042-US.
       </p>
       <div className="mt-8">
         <TrackingForm />
