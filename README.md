@@ -4,7 +4,7 @@ Shipment tracking and payments for cross-border logistics between Nigeria, the U
 
 I built Waybill as a portfolio project, drawing on how we run operations at eShopAfrica, an international logistics company in Lagos. Customers there ask one question more than any other: _where is my package?_ Waybill answers it, and over the next stages it grows into the full flow: booking, quoting, admin tools and paying with Paystack.
 
-**Live demo:** _coming with the first deploy_
+**Live demo:** [waybill-dusky.vercel.app](https://waybill-dusky.vercel.app)
 **Status:** Stage 1 of 6 complete. The app runs on invented sample data for now.
 
 ![Tracking page on desktop](docs/screenshots/desktop-tracking.png)
