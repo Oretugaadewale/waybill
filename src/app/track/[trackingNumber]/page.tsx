@@ -4,11 +4,11 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Timeline } from "@/components/timeline";
 import { WaybillCard } from "@/components/waybill-card";
+import { getShipment } from "@/lib/shipments/repository";
 import {
   STAGE_LABELS,
   currentStage,
   eventsNewestFirst,
-  findShipment,
   listSampleTrackingNumbers,
   normalizeTrackingNumber,
 } from "@/lib/shipments/tracking";
@@ -21,7 +21,9 @@ export async function generateMetadata({
   params,
 }: PageProps<"/track/[trackingNumber]">): Promise<Metadata> {
   const { trackingNumber } = await params;
-  const shipment = findShipment(decodeURIComponent(trackingNumber));
+  const shipment = await getShipment(
+    normalizeTrackingNumber(decodeURIComponent(trackingNumber)),
+  );
   if (!shipment) return { title: "Shipment not found" };
   return {
     title: `${shipment.trackingNumber}: ${STAGE_LABELS[currentStage(shipment)]}`,
@@ -42,7 +44,7 @@ async function TrackPageContent({
     redirect(`/track/${encodeURIComponent(canonical)}`);
   }
 
-  const shipment = findShipment(canonical);
+  const shipment = await getShipment(canonical);
   if (!shipment) notFound();
 
   return (
@@ -72,8 +74,18 @@ async function TrackPageContent({
 
 export default function TrackPage({ params }: PageProps<"/track/[trackingNumber]">) {
   return (
-    <Suspense>
+    <Suspense fallback={<TrackPageSkeleton />}>
       <TrackPageContent params={params} />
     </Suspense>
+  );
+}
+
+function TrackPageSkeleton() {
+  return (
+    <div className="mx-auto max-w-4xl px-5 py-10 sm:px-8 sm:py-14" aria-busy="true">
+      <p className="sr-only">Loading shipment</p>
+      <div className="h-4 w-44 rounded-sm bg-rule" />
+      <div className="mt-6 h-[28rem] rounded-sm border-2 border-ink bg-paper" />
+    </div>
   );
 }

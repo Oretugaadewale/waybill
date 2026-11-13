@@ -1,10 +1,10 @@
 import { SampleList } from "@/components/sample-list";
 import { TrackingForm } from "@/components/tracking-form";
 import { WaybillCard } from "@/components/waybill-card";
-import { findShipment } from "@/lib/shipments/tracking";
+import { getShipment } from "@/lib/shipments/repository";
 
-export default function HomePage() {
-  const preview = findShipment("WB-3150-CA")!;
+export default async function HomePage() {
+  const preview = await getShipment("WB-3150-CA");
 
   return (
     <div className="mx-auto grid max-w-6xl gap-12 px-5 py-12 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-16 lg:py-20">
@@ -35,9 +35,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section aria-label="Example tracking result" className="lg:pt-2">
-        <WaybillCard shipment={preview} headingLevel="h2" />
-      </section>
+      {preview ? (
+        <section aria-label="Example tracking result" className="lg:pt-2">
+          <WaybillCard shipment={preview} headingLevel="h2" />
+        </section>
+      ) : null}
     </div>
   );
 }
