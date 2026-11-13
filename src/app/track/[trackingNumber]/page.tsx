@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { Suspense } from "react";
 import { Timeline } from "@/components/timeline";
 import { WaybillCard } from "@/components/waybill-card";
 import {
@@ -27,9 +28,11 @@ export async function generateMetadata({
   };
 }
 
-export default async function TrackPage({
+async function TrackPageContent({
   params,
-}: PageProps<"/track/[trackingNumber]">) {
+}: {
+  params: Promise<{ trackingNumber: string }>;
+}) {
   const { trackingNumber: raw } = await params;
   const requested = decodeURIComponent(raw);
   const canonical = normalizeTrackingNumber(requested);
@@ -64,5 +67,13 @@ export default async function TrackPage({
         </div>
       </section>
     </div>
+  );
+}
+
+export default function TrackPage({ params }: PageProps<"/track/[trackingNumber]">) {
+  return (
+    <Suspense>
+      <TrackPageContent params={params} />
+    </Suspense>
   );
 }
