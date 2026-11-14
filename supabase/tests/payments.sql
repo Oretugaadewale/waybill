@@ -9,6 +9,7 @@ declare
   v_ref text;
   v_key text;
   v_quote jsonb := '{"totalMinor": 5240625}'::jsonb;
+  v_out text[] := array[]::text[];
 begin
   -- 1
   begin
@@ -33,33 +34,38 @@ begin
 
     begin
       perform public.start_payment(v_key, v_ref, v_ref || '-0123456789ab', 100);
-      insert into payment_results values (3, 'Start a payment for the wrong amount (should be blocked)', 'ALLOWED');
+      v_out := v_out || array['3|Start a payment for the wrong amount (should be blocked)|ALLOWED'];
     exception when others then
-      insert into payment_results values (3, 'Start a payment for the wrong amount (should be blocked)', sqlerrm);
+      v_out := v_out || array['3|Start a payment for the wrong amount (should be blocked)|' || sqlerrm];
     end;
 
     perform public.start_payment(v_key, v_ref, v_ref || '-0123456789ab', 5240625);
 
     begin
       perform public.record_payment_result(v_key, v_ref || '-0123456789ab', 'success', 100, 'NGN', now(), 'card', 'ok');
-      insert into payment_results values (4, 'Record a smaller paid amount (should be blocked)', 'ALLOWED');
+      v_out := v_out || array['4|Record a smaller paid amount (should be blocked)|ALLOWED'];
     exception when others then
-      insert into payment_results values (4, 'Record a smaller paid amount (should be blocked)', sqlerrm);
+      v_out := v_out || array['4|Record a smaller paid amount (should be blocked)|' || sqlerrm];
     end;
 
-    insert into payment_results values (5, 'Record the right amount (should mark paid)',
+    v_out := v_out || array['5|Record the right amount (should mark paid)|' ||
       public.record_payment_result(v_key, v_ref || '-0123456789ab', 'success', 5240625, 'NGN', now(), 'card', 'Approved')
-      || ', booking ' || (select status::text from public.bookings where reference = v_ref));
+      || ', booking ' || (select status::text from public.bookings where reference = v_ref)];
 
-    insert into payment_results values (6, 'Same confirmation twice (should be harmless)',
-      public.record_payment_result(v_key, v_ref || '-0123456789ab', 'success', 5240625, 'NGN', now(), 'card', 'Approved'));
+    v_out := v_out || array['6|Same confirmation twice (should be harmless)|' ||
+      public.record_payment_result(v_key, v_ref || '-0123456789ab', 'success', 5240625, 'NGN', now(), 'card', 'Approved')];
 
     raise exception 'undo';
   exception when others then
     if sqlerrm <> 'undo' then
-      insert into payment_results values (99, 'Unexpected error', sqlerrm);
+      v_out := v_out || array['99|Unexpected error|' || sqlerrm];
     end if;
   end;
+
+  -- The block above was rolled back, so only the messages survive.
+  insert into payment_results
+  select split_part(x, '|', 1)::int, split_part(x, '|', 2), split_part(x, '|', 3)
+  from unnest(v_out) as x;
 end $$;
 
 select n, test, result from payment_results order by n;
