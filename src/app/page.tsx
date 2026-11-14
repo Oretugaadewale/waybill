@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SampleList } from "@/components/sample-list";
 import { TrackingForm } from "@/components/tracking-form";
 import { WaybillCard } from "@/components/waybill-card";
@@ -23,6 +24,24 @@ export default async function HomePage() {
         </div>
 
         <TrackingForm />
+
+        <p className="text-ink-soft">
+          Sending something?{" "}
+          <Link
+            href="/quote"
+            className="font-semibold text-ink underline underline-offset-4"
+          >
+            Get a price in seconds
+          </Link>{" "}
+          or{" "}
+          <Link
+            href="/book"
+            className="font-semibold text-ink underline underline-offset-4"
+          >
+            book a shipment
+          </Link>
+          .
+        </p>
 
         <div>
           <h2 className="text-base font-semibold">No receipt? Try a sample</h2>

@@ -5,7 +5,7 @@ Shipment tracking and payments for cross-border logistics between Nigeria, the U
 I built Waybill as a portfolio project, drawing on how we run operations at eShopAfrica, an international logistics company in Lagos. Customers there ask one question more than any other: _where is my package?_ Waybill answers it, and over the next stages it grows into the full flow: booking, quoting, admin tools and paying with Paystack.
 
 **Live demo:** [waybill-dusky.vercel.app](https://waybill-dusky.vercel.app)
-**Status:** Stage 3 of 6 complete. Staff create shipments and post tracking updates from an admin dashboard, and the public page updates the moment they post. All data is invented.
+**Status:** Stage 4 of 6 complete. Customers price and book shipments online; staff turn bookings into tracked shipments from the admin dashboard. All data and prices are invented.
 
 ![Tracking page on desktop](docs/screenshots/desktop-tracking.png)
 
@@ -23,6 +23,8 @@ Open the demo and enter any of these sample tracking numbers. Each one is at a d
 | `WB-1042-US`    | Lagos to Houston    | Delivered        |
 
 You can type the number the way customers really do: `wb 1042 us` and `WB1042US` both work.
+
+To price a shipment, open [`/quote`](https://waybill-dusky.vercel.app/quote). For example, 2.2 kg by Air Express from Lagos to the UK comes to ₦52,406.25 including VAT.
 
 ## What Stage 1 includes
 
@@ -80,6 +82,31 @@ erDiagram
 | Admin                   | Read, create and update; remove the latest scan; cancel, never delete | Own row only | Yes            |
 
 Admins are added with SQL only, so there is no API an attacker could use to make themselves one. `is_admin()` and `get_shipment()` are `security definer` functions with a locked `search_path`, and tables are not exposed to the Data API unless a grant says so.
+
+## What Stage 4 adds
+
+- **A quote calculator** at `/quote`. Pick the service, where it ships from and to, the weight and, optionally, the box size. The price and its breakdown update as you type.
+- **A booking form** at `/book`, prefilled from the quote. It collects the sender, receiver and package details and returns a booking reference.
+- **Bookings in the admin dashboard.** Staff review each booking, then create the shipment from it in one step (tracking number and first scan included) or decline it with a reason.
+
+### How prices work
+
+| Rule                          | Detail                                                                                                                                                                                   |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Per kilo, everything in naira | Air and sea alike, so Paystack can charge every booking (Stage 5)                                                                                                                        |
+| Zones                         | UK and Ireland, Europe, US and Canada, Africa, Asia, rest of world. Each country's zone comes from its main time zone region, so all 240+ countries are covered without a hand-kept list |
+| Chargeable weight             | The bigger of the real weight and the box size (cm³ / 5,000 for air, / 6,000 for sea), rounded up to the next half kilo. Minimum 1 kg by air, 10 kg by sea                               |
+| Getting it to us              | Free drop-off at the Lagos office in Ojota (or the Guangzhou warehouse), or pickup for a fee                                                                                             |
+| Extras                        | Handling fee, then 7.5% VAT on the total                                                                                                                                                 |
+
+The rate card lives in [`src/lib/pricing/rate-card.ts`](src/lib/pricing/rate-card.ts) and its numbers are made up for this demo. `calculateQuote()` is a pure function: the browser runs it to show the price live, and the server runs it again before saving. The server never takes a price from the browser, and the admin page recomputes every booking and flags any that do not match.
+
+### Keeping bookings safe
+
+- The public creates bookings only through `submit_booking()`, a database function that checks every field and allows at most five bookings an hour per email address.
+- Bookings hold names, phone numbers and addresses, so only admins can read them. Admins can move a booking on but cannot rewrite what the customer sent.
+- The form has a hidden honeypot field and rejects submissions sent back faster than a person could fill it in.
+- [`supabase/tests/bookings.sql`](supabase/tests/bookings.sql) checks these rules against a live database and undoes every change.
 
 ## What Stage 3 adds
 
@@ -166,12 +193,15 @@ src/
   lib/admin/              Admin session checks, form state and data mapping
   lib/shipments/          Shipment types, sample data, tracking logic, route rules and form validation
   lib/places.ts           Countries, time zones and local time conversion
+  lib/pricing/            Rate card, zones and the quote calculator
+  lib/bookings/           Booking validation and admin helpers
+  app/quote, app/book     Public quote calculator and booking form
   lib/supabase/           Supabase clients for the signed-in user and the public
   fonts/                  Self-hosted IBM Plex Sans and Mono
   proxy.ts                Refreshes the session and guards /admin
 supabase/
   migrations/             Schema, grants, Row Level Security and the tracking rules
-  tests/rules.sql         Checks every database rule and undoes its changes
+  tests/                  SQL checks for the tracking and booking rules
   seed.sql                The six sample shipments
 ```
 
@@ -184,8 +214,8 @@ The tracking logic, route rules and time zone handling are plain TypeScript with
 | 1     | Project setup and public tracking page                             | Done    |
 | 2     | Supabase database, Row Level Security and admin login              | Done    |
 | 3     | Admin dashboard to create shipments and post tracking updates      | Done    |
-| 4     | Booking form and a quote calculator by weight, route and service   | Next    |
-| 5     | Paystack test payments with server-side verification and a webhook | Planned |
+| 4     | Booking form and a quote calculator by weight, route and service   | Done    |
+| 5     | Paystack test payments with server-side verification and a webhook | Next    |
 | 6     | End-to-end tests, final deploy and a write-up of the decisions     | Planned |
 
 ## About

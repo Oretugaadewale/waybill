@@ -20,10 +20,29 @@ export function AdminShell({
     <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
       {email ? (
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 border-b border-rule pb-4 text-sm">
-          <p className="text-ink-soft">
-            Signed in as <span className="font-medium text-ink">{email}</span>
-          </p>
-          <SignOutButton />
+          <nav aria-label="Admin">
+            <ul className="flex gap-5 font-semibold">
+              <li>
+                <Link href="/admin" className="underline-offset-4 hover:underline">
+                  Shipments
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/admin/bookings"
+                  className="underline-offset-4 hover:underline"
+                >
+                  Bookings
+                </Link>
+              </li>
+            </ul>
+          </nav>
+          <div className="flex flex-wrap items-center gap-4">
+            <p className="text-ink-soft">
+              Signed in as <span className="font-medium text-ink">{email}</span>
+            </p>
+            <SignOutButton />
+          </div>
         </div>
       ) : null}
       {back ? (
