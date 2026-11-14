@@ -3,7 +3,12 @@ import { calculateQuote } from "@/lib/pricing/quote";
 import type { ServiceLevel } from "@/lib/shipments/types";
 import { createPublicClient } from "@/lib/supabase/server";
 import { getSupabaseEnv } from "@/lib/supabase/env";
-import { bookingReferenceOf, paystackSecretKey, verifyTransaction } from "./paystack";
+import {
+  bookingReferenceOf,
+  cleanEnvValue,
+  paystackSecretKey,
+  verifyTransaction,
+} from "./paystack";
 
 export interface BookingForPayment {
   reference: string;
@@ -22,9 +27,16 @@ export interface BookingForPayment {
   paidAt: string | null;
 }
 
+export function serverKeyStatus(): "ok" | "missing" | "invalid" {
+  const key = cleanEnvValue(process.env.WAYBILL_SERVER_KEY);
+  if (!key) return "missing";
+  return /^wbk_[0-9a-f]{64}$/.test(key) ? "ok" : "invalid";
+}
+
 export function serverKey(): string | null {
-  const key = process.env.WAYBILL_SERVER_KEY;
-  return key && /^wbk_[0-9a-f]{64}$/.test(key) ? key : null;
+  return serverKeyStatus() === "ok"
+    ? cleanEnvValue(process.env.WAYBILL_SERVER_KEY)
+    : null;
 }
 
 /** Payments need the database, the Paystack key and the server key. */

@@ -144,3 +144,12 @@ describe("Paystack API calls", () => {
     await expect(verifyTransaction("x")).rejects.toThrow(/PAYSTACK_SECRET_KEY/);
   });
 });
+
+describe("cleanEnvValue", () => {
+  it("ignores stray spaces, quotes and line breaks from pasting", async () => {
+    const { cleanEnvValue } = await import("./paystack");
+    expect(cleanEnvValue("  sk_test_abc\n")).toBe("sk_test_abc");
+    expect(cleanEnvValue('"sk_test_abc"')).toBe("sk_test_abc");
+    expect(cleanEnvValue(undefined)).toBe("");
+  });
+});

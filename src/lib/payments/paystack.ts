@@ -3,9 +3,24 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 const API = "https://api.paystack.co";
 
+/** The key as pasted, minus stray spaces, quotes or line breaks. */
+export function cleanEnvValue(value: string | undefined): string {
+  return (value ?? "")
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .trim();
+}
+
+export function paystackKeyStatus(): "ok" | "missing" | "invalid" {
+  const key = cleanEnvValue(process.env.PAYSTACK_SECRET_KEY);
+  if (!key) return "missing";
+  return /^sk_(test|live)_[A-Za-z0-9]+$/.test(key) ? "ok" : "invalid";
+}
+
 export function paystackSecretKey(): string | null {
-  const key = process.env.PAYSTACK_SECRET_KEY;
-  return key && /^sk_(test|live)_[A-Za-z0-9]+$/.test(key) ? key : null;
+  return paystackKeyStatus() === "ok"
+    ? cleanEnvValue(process.env.PAYSTACK_SECRET_KEY)
+    : null;
 }
 
 /** A fresh reference for each attempt, tied to the booking: BK-7KQ4MX-1a2b3c4d5e6f. */
