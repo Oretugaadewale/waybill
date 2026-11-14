@@ -1,5 +1,6 @@
 import "server-only";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { createUserClient } from "@/lib/supabase/server";
 
 type UserClient = Awaited<ReturnType<typeof createUserClient>>;
@@ -14,6 +15,9 @@ export type AdminAccess =
  * but pages never rely on the proxy alone.
  */
 export async function getAdminAccess(): Promise<AdminAccess> {
+  // Admin pages are always per request; this also keeps the Supabase client's
+  // clock reads out of prerendering.
+  await connection();
   const supabase = await createUserClient();
   const { data: claims } = await supabase.auth.getClaims();
   if (!claims?.claims?.sub) redirect("/admin/login");

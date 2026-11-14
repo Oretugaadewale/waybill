@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { emptyQuoteValues } from "@/components/quote/quote-fields";
+import { emptyQuoteValues } from "@/components/quote/quote-values";
 import { QuoteCalculator } from "./quote-calculator";
 
 describe("QuoteCalculator", () => {

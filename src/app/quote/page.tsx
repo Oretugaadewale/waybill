@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { emptyQuoteValues, quoteValuesFromParams } from "@/components/quote/quote-fields";
+import { emptyQuoteValues, quoteValuesFromParams } from "@/components/quote/quote-values";
 import { QuoteCalculator } from "./quote-calculator";
 
 export const metadata: Metadata = {

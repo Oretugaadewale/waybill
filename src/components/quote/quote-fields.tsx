@@ -1,5 +1,9 @@
 "use client";
 
+import type { QuoteFormValues } from "./quote-values";
+
+export type { QuoteFormValues };
+
 import { Field, inputClass } from "@/components/form/fields";
 import { COUNTRIES, countryName } from "@/lib/places";
 import { RATE_CARD } from "@/lib/pricing/rate-card";
@@ -9,48 +13,6 @@ import {
   SEA_ORIGINS,
   SERVICE_LEVELS,
 } from "@/lib/shipments/rules";
-
-export interface QuoteFormValues {
-  service: string;
-  originCountry: string;
-  destinationCountry: string;
-  weightKg: string;
-  length: string;
-  width: string;
-  height: string;
-  collection: string;
-}
-
-export const emptyQuoteValues: QuoteFormValues = {
-  service: "Air Express",
-  originCountry: "NG",
-  destinationCountry: "",
-  weightKg: "",
-  length: "",
-  width: "",
-  height: "",
-  collection: "drop_off",
-};
-
-/** Reads quote values from URL search params, ignoring anything unexpected. */
-export function quoteValuesFromParams(
-  params: Record<string, string | string[] | undefined>,
-): QuoteFormValues {
-  const get = (key: keyof QuoteFormValues) => {
-    const v = params[key];
-    return typeof v === "string" ? v.slice(0, 40) : emptyQuoteValues[key];
-  };
-  return {
-    service: get("service"),
-    originCountry: get("originCountry"),
-    destinationCountry: get("destinationCountry"),
-    weightKg: get("weightKg"),
-    length: get("length"),
-    width: get("width"),
-    height: get("height"),
-    collection: get("collection"),
-  };
-}
 
 interface QuoteFieldsProps {
   values: QuoteFormValues;

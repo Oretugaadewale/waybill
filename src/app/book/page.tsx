@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Suspense } from "react";
-import { quoteValuesFromParams } from "@/components/quote/quote-fields";
+import { quoteValuesFromParams } from "@/components/quote/quote-values";
 import { BookingForm } from "./booking-form";
 
 export const metadata: Metadata = {
@@ -30,6 +31,7 @@ async function BookingFormWithParams({
   searchParams: PageProps<"/book">["searchParams"];
 }) {
   const initial = quoteValuesFromParams(await searchParams);
+  await connection();
   return <BookingForm initial={initial} startedAt={formOpenedAt()} />;
 }
 
