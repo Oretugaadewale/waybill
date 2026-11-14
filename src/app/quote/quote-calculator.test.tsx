@@ -25,6 +25,11 @@ describe("QuoteCalculator", () => {
     const options = within(screen.getByLabelText("Ships to"))
       .getAllByRole("option")
       .map((o) => o.textContent);
-    expect(options).toEqual(["Choose a country", "United States", "Canada", "United Kingdom"]);
+    expect(options).toEqual([
+      "Choose a country",
+      "United States",
+      "Canada",
+      "United Kingdom",
+    ]);
   });
 });
