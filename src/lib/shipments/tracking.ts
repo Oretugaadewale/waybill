@@ -127,13 +127,4 @@ export function formatDate(isoDate: string): string {
   return `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]} ${m[1]}`;
 }
 
-const COUNTRY_NAMES: Record<string, string> = {
-  NG: "Nigeria",
-  US: "United States",
-  GB: "United Kingdom",
-  CA: "Canada",
-};
-
-export function countryName(code: string): string {
-  return COUNTRY_NAMES[code] ?? code;
-}
+export { countryName } from "@/lib/country-name";

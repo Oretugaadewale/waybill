@@ -5,12 +5,14 @@ import { formatDate } from "@/lib/shipments/tracking";
 export function ShipmentFacts({ shipment }: { shipment: Shipment }) {
   const delivered = shipment.events.at(-1)?.stage === "delivered";
   const facts: { label: string; value: string }[] = [
-    {
-      label: delivered ? "Delivered on" : "Estimated delivery",
-      value: delivered
-        ? formatDate(shipment.events.at(-1)!.at)
-        : formatDate(shipment.estimatedDelivery),
-    },
+    shipment.cancelledAt
+      ? { label: "Cancelled on", value: formatDate(shipment.cancelledAt) }
+      : {
+          label: delivered ? "Delivered on" : "Estimated delivery",
+          value: delivered
+            ? formatDate(shipment.events.at(-1)!.at)
+            : formatDate(shipment.estimatedDelivery),
+        },
     { label: "Service", value: shipment.service },
     { label: "Carrier", value: shipment.carrier },
     { label: "Weight", value: `${shipment.weightKg} kg` },

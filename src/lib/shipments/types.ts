@@ -45,6 +45,8 @@ export interface Shipment {
   contents: string;
   /** ISO 8601 date (no time) of the expected delivery. */
   estimatedDelivery: string;
+  /** When the shipment was cancelled, if it was. Cancelled shipments take no more scans. */
+  cancelledAt?: string | null;
   /** Events in chronological order, oldest first. */
   events: TrackingEvent[];
 }

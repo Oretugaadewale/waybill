@@ -5,7 +5,7 @@ Shipment tracking and payments for cross-border logistics between Nigeria, the U
 I built Waybill as a portfolio project, drawing on how we run operations at eShopAfrica, an international logistics company in Lagos. Customers there ask one question more than any other: _where is my package?_ Waybill answers it, and over the next stages it grows into the full flow: booking, quoting, admin tools and paying with Paystack.
 
 **Live demo:** [waybill-dusky.vercel.app](https://waybill-dusky.vercel.app)
-**Status:** Stage 2 of 6 complete. Shipments live in Supabase, behind Row Level Security, with an admin login. All data is invented.
+**Status:** Stage 3 of 6 complete. Staff create shipments and post tracking updates from an admin dashboard, and the public page updates the moment they post. All data is invented.
 
 ![Tracking page on desktop](docs/screenshots/desktop-tracking.png)
 
@@ -73,13 +73,37 @@ erDiagram
 
 ### Who can do what
 
-| Who                     | shipments / tracking_events       | admins       | get_shipment() |
-| ----------------------- | --------------------------------- | ------------ | -------------- |
-| Public (anon)           | No access                         | No access    | Yes            |
-| Signed in, not an admin | No rows returned, writes rejected | Own row only | Yes            |
-| Admin                   | Read, create, update, delete      | Own row only | Yes            |
+| Who                     | shipments / tracking_events                                           | admins       | get_shipment() |
+| ----------------------- | --------------------------------------------------------------------- | ------------ | -------------- |
+| Public (anon)           | No access                                                             | No access    | Yes            |
+| Signed in, not an admin | No rows returned, writes rejected                                     | Own row only | Yes            |
+| Admin                   | Read, create and update; remove the latest scan; cancel, never delete | Own row only | Yes            |
 
 Admins are added with SQL only, so there is no API an attacker could use to make themselves one. `is_admin()` and `get_shipment()` are `security definer` functions with a locked `search_path`, and tables are not exposed to the Data API unless a grant says so.
+
+## What Stage 3 adds
+
+- **An admin dashboard** at `/admin`: every shipment, with search by tracking number, city or hub code, and a filter by status.
+- **Create a shipment** at `/admin/shipments/new`. Waybill generates the tracking number (it ends in the destination country, like `WB-4821-NG`) and posts the first Booked scan in the same database transaction.
+- **A page per shipment** to post tracking updates, edit the package details, remove a scan posted by mistake, or cancel the shipment.
+- **Instant public updates.** Each change calls `updateTag` for that shipment, so the cached tracking page is fresh on the next visit.
+- **Real routes.** Air ships from Nigeria or China to any of 240+ countries; sea freight runs from Nigeria to the United States, Canada and the United Kingdom. The forms only offer valid choices, and the server checks again.
+- **Local time everywhere.** The admin picks the place of a scan; countries with several time zones (the US, Canada, China...) ask which one. The scan is stored as UTC plus that place's offset on that date, daylight saving included.
+
+### Rules the database enforces
+
+The rules live in Postgres triggers, not just the forms, so they hold for every client: the dashboard, the SQL editor or a script.
+
+| Rule                                                                    | Why                                                                        |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Stages only move forward; in transit and at customs may repeat          | A parcel can pass several hubs, but never goes from customs back to pickup |
+| Scans are in time order and not in the future                           | The timeline a customer reads must make sense                              |
+| Delivered and cancelled shipments take no new scans                     | Their story is finished                                                    |
+| Scans cannot be edited; only the latest can be removed, never the first | Mistakes are undone without rewriting history                              |
+| The route, service and tracking number are fixed after booking          | Customers may already have the number                                      |
+| Shipments are cancelled, never deleted                                  | There is always a record                                                   |
+
+Rule violations raise a plain-English message with SQLSTATE `P0001`, which the dashboard shows as it is. [`supabase/tests/rules.sql`](supabase/tests/rules.sql) checks all of them against a live database and undoes every change.
 
 ## Tech stack
 
@@ -111,7 +135,7 @@ Then open http://localhost:3000. Without Supabase settings the app runs on the b
 ### Connect Supabase (optional)
 
 1. Create a Supabase project.
-2. In the SQL Editor, run [`supabase/migrations/20261113120000_init.sql`](supabase/migrations/20261113120000_init.sql), then [`supabase/seed.sql`](supabase/seed.sql).
+2. In the SQL Editor, run the files in [`supabase/migrations`](supabase/migrations) in order, then [`supabase/seed.sql`](supabase/seed.sql).
 3. Copy `.env.example` to `.env.local` and fill in the Project URL and publishable key from **Project Settings > API**.
 4. Create a user in **Authentication > Users**, then make it an admin:
 
@@ -138,17 +162,20 @@ Every push to `main` runs formatting, lint, type checks, tests and a production 
 src/
   app/                    Routes: home, /track/[trackingNumber], not-found pages
   components/             UI components and their tests
-  app/admin/              Admin sign in, sign out and the shipment list
-  lib/shipments/          Shipment types, sample data, tracking logic and the repository
+  app/admin/              Admin sign in, dashboard, new shipment and shipment pages
+  lib/admin/              Admin session checks, form state and data mapping
+  lib/shipments/          Shipment types, sample data, tracking logic, route rules and form validation
+  lib/places.ts           Countries, time zones and local time conversion
   lib/supabase/           Supabase clients for the signed-in user and the public
+  fonts/                  Self-hosted IBM Plex Sans and Mono
   proxy.ts                Refreshes the session and guards /admin
 supabase/
-  migrations/             Schema, grants and Row Level Security policies
+  migrations/             Schema, grants, Row Level Security and the tracking rules
+  tests/rules.sql         Checks every database rule and undoes its changes
   seed.sql                The six sample shipments
-  fonts/                  Self-hosted IBM Plex Sans and Mono
 ```
 
-The tracking logic in `src/lib/shipments/tracking.ts` is plain TypeScript with no framework code, so it is easy to test and will stay the same when the data moves into a database.
+The tracking logic, route rules and time zone handling are plain TypeScript with no framework code, so they are easy to test. The forms and the database apply the same rules: the forms for clear messages, the database so nothing can get around them.
 
 ## Roadmap
 
@@ -156,8 +183,8 @@ The tracking logic in `src/lib/shipments/tracking.ts` is plain TypeScript with n
 | ----- | ------------------------------------------------------------------ | ------- |
 | 1     | Project setup and public tracking page                             | Done    |
 | 2     | Supabase database, Row Level Security and admin login              | Done    |
-| 3     | Admin dashboard to create shipments and post tracking updates      | Next    |
-| 4     | Booking form and a quote calculator by weight, route and service   | Planned |
+| 3     | Admin dashboard to create shipments and post tracking updates      | Done    |
+| 4     | Booking form and a quote calculator by weight, route and service   | Next    |
 | 5     | Paystack test payments with server-side verification and a webhook | Planned |
 | 6     | End-to-end tests, final deploy and a write-up of the decisions     | Planned |
 

@@ -1,5 +1,5 @@
 import type { Shipment } from "@/lib/shipments/types";
-import { currentStage, progressSteps } from "@/lib/shipments/tracking";
+import { currentStage, formatDate, progressSteps } from "@/lib/shipments/tracking";
 import { Barcode } from "./barcode";
 import { ProgressSteps } from "./progress-steps";
 import { RouteBand } from "./route-band";
@@ -23,8 +23,18 @@ export function WaybillCard({ shipment, headingLevel = "h1" }: WaybillCardProps)
             {shipment.trackingNumber}
           </Heading>
         </div>
-        <StatusBadge stage={currentStage(shipment)} />
+        <StatusBadge
+          stage={currentStage(shipment)}
+          cancelled={Boolean(shipment.cancelledAt)}
+        />
       </header>
+
+      {shipment.cancelledAt ? (
+        <p className="border-b-2 border-ink bg-concrete px-5 py-3 font-medium sm:px-8">
+          This shipment was cancelled on {formatDate(shipment.cancelledAt)}. It will not
+          move any further. Contact the sender if you have questions.
+        </p>
+      ) : null}
 
       <div className="px-5 py-6 sm:px-8 sm:py-8">
         <RouteBand origin={shipment.origin} destination={shipment.destination} />

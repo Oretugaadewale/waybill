@@ -11,6 +11,7 @@ export interface ShipmentRecord {
   pieces: number;
   contents: string;
   estimatedDelivery: string;
+  cancelledAt?: string | null;
   events: {
     stage: ShipmentStage;
     occurredAt: string;
@@ -58,6 +59,7 @@ export function recordToShipment(record: ShipmentRecord): Shipment {
     pieces: record.pieces,
     contents: record.contents,
     estimatedDelivery: record.estimatedDelivery,
+    cancelledAt: record.cancelledAt ?? null,
     events,
   };
 }

@@ -26,7 +26,9 @@ export async function generateMetadata({
   );
   if (!shipment) return { title: "Shipment not found" };
   return {
-    title: `${shipment.trackingNumber}: ${STAGE_LABELS[currentStage(shipment)]}`,
+    title: `${shipment.trackingNumber}: ${
+      shipment.cancelledAt ? "Cancelled" : STAGE_LABELS[currentStage(shipment)]
+    }`,
   };
 }
 

@@ -10,7 +10,7 @@ export function Timeline({ events }: { events: TrackingEvent[] }) {
         const latest = i === 0;
         return (
           <li
-            key={event.at}
+            key={`${event.at}-${i}`}
             className="relative grid grid-cols-[1.25rem_1fr] gap-x-4 pb-6 last:pb-0"
           >
             <span aria-hidden="true" className="relative flex justify-center">

@@ -49,7 +49,7 @@ describe("recordToShipment", () => {
       }),
     };
 
-    expect(recordToShipment(record)).toEqual(sample);
+    expect(recordToShipment(record)).toEqual({ ...sample, cancelledAt: null });
   });
 });
 
