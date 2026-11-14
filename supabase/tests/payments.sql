@@ -48,9 +48,10 @@ begin
       v_out := v_out || array['4|Record a smaller paid amount (should be blocked)|' || sqlerrm];
     end;
 
-    v_out := v_out || array['5|Record the right amount (should mark paid)|' ||
-      public.record_payment_result(v_key, v_ref || '-0123456789ab', 'success', 5240625, 'NGN', now(), 'card', 'Approved')
-      || ', booking ' || (select status::text from public.bookings where reference = v_ref)];
+    v_msg := public.record_payment_result(v_key, v_ref || '-0123456789ab', 'success', 5240625, 'NGN', now(), 'card', 'Approved');
+    -- A separate statement, so it sees what the function wrote.
+    v_msg := v_msg || ', booking ' || (select status::text from public.bookings where reference = v_ref);
+    v_out := v_out || array['5|Record the right amount (should mark paid)|' || v_msg];
 
     v_out := v_out || array['6|Same confirmation twice (should be harmless)|' ||
       public.record_payment_result(v_key, v_ref || '-0123456789ab', 'success', 5240625, 'NGN', now(), 'card', 'Approved')];
