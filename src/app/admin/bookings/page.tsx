@@ -70,7 +70,7 @@ async function BookingsContent({
   const bookings = (data ?? []) as unknown as BookingListRow[];
 
   return (
-    <AdminShell title="Bookings" email={access.email}>
+    <AdminShell section="bookings" title="Bookings" email={access.email}>
       <form
         action="/admin/bookings"
         className="flex flex-wrap items-end gap-4 rounded-sm border-2 border-ink bg-paper p-4"

@@ -103,6 +103,7 @@ async function BookingContent({
 
   return (
     <AdminShell
+      section="bookings"
       title={<span className="font-mono">{b.reference}</span>}
       email={access.email}
       back={{ href: "/admin/bookings", label: "All bookings" }}

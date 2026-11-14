@@ -79,6 +79,7 @@ async function ShipmentContent({
 
   return (
     <AdminShell
+      section="shipments"
       title={<span className="font-mono">{shipment.trackingNumber}</span>}
       email={access.email}
       back={{ href: "/admin", label: "All shipments" }}

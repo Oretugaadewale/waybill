@@ -3,13 +3,22 @@ import type { ReactNode } from "react";
 import { signOut } from "../actions";
 
 /** Page frame for every signed-in admin page. */
+const TABS = [
+  { key: "shipments", href: "/admin", label: "Shipments" },
+  { key: "bookings", href: "/admin/bookings", label: "Bookings" },
+] as const;
+
+export type AdminSection = (typeof TABS)[number]["key"];
+
 export function AdminShell({
   title,
   back,
   email,
   actions,
+  section,
   children,
 }: {
+  section?: AdminSection;
   title: ReactNode;
   back?: { href: string; label: string };
   email?: string;
@@ -21,20 +30,25 @@ export function AdminShell({
       {email ? (
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 border-b border-rule pb-4 text-sm">
           <nav aria-label="Admin">
-            <ul className="flex gap-5 font-semibold">
-              <li>
-                <Link href="/admin" className="underline-offset-4 hover:underline">
-                  Shipments
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/admin/bookings"
-                  className="underline-offset-4 hover:underline"
-                >
-                  Bookings
-                </Link>
-              </li>
+            <ul className="flex gap-2">
+              {TABS.map((tab) => {
+                const current = tab.key === section;
+                return (
+                  <li key={tab.key}>
+                    <Link
+                      href={tab.href}
+                      aria-current={current ? "page" : undefined}
+                      className={
+                        current
+                          ? "inline-flex min-h-11 items-center rounded-sm bg-ink px-5 text-base font-semibold text-paper"
+                          : "inline-flex min-h-11 items-center rounded-sm border-2 border-ink bg-paper px-5 text-base font-semibold hover:bg-tape"
+                      }
+                    >
+                      {tab.label}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </nav>
           <div className="flex flex-wrap items-center gap-4">

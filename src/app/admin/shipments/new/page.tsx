@@ -35,6 +35,7 @@ async function NewShipmentContent() {
 
   return (
     <AdminShell
+      section="shipments"
       title="New shipment"
       email={access.email}
       back={{ href: "/admin", label: "All shipments" }}

@@ -60,6 +60,7 @@ async function AdminContent({
 
   return (
     <AdminShell
+      section="shipments"
       title="Shipments"
       email={access.email}
       actions={
