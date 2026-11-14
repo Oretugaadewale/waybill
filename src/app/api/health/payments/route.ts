@@ -19,7 +19,21 @@ export async function GET() {
           ? "live"
           : null,
       serverKey: serverKeyStatus(),
+      // Shape only, never the value: helps spot a key pasted in the wrong place.
+      shapes: {
+        paystackSecretKey: shape(process.env.PAYSTACK_SECRET_KEY),
+        serverKey: shape(process.env.WAYBILL_SERVER_KEY),
+      },
     },
     { headers: { "Cache-Control": "no-store" } },
   );
+}
+
+function shape(value: string | undefined) {
+  if (value === undefined) return null;
+  return {
+    length: value.length,
+    startsWith: value.slice(0, 4),
+    hasSpaces: /\s/.test(value),
+  };
 }
