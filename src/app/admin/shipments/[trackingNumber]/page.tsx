@@ -154,7 +154,7 @@ async function ShipmentContent({
 
           {!cancelled ? (
             <Panel
-              title="Shipment details"
+              title="Edit details"
               description="The route and service are fixed once booked."
             >
               <EditDetailsForm
