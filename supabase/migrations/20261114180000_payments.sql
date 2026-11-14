@@ -20,6 +20,10 @@ create table private.server_keys (
   created_at timestamptz not null default now()
 );
 
+-- Not reachable through the Data API anyway; Row Level Security with no
+-- policies is a second lock.
+alter table private.server_keys enable row level security;
+
 -- Run once in the SQL editor (as the database owner). It returns a new key a
 -- single time and keeps only its hash. Running it again replaces the key.
 create function public.create_server_key()

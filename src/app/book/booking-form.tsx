@@ -225,9 +225,15 @@ function Confirmation({ booking }: { booking: NonNullable<BookingState["booking"
               {booking.senderPhone} to arrange a time.
             </p>
           )}
-          <p className="text-ink-soft">
-            Once it is paid and checked in, you will get a tracking number to follow its
-            journey. Online payment is the next step and opens here soon.
+          <Link
+            href={`/pay/${booking.reference}`}
+            className="flex min-h-12 items-center justify-center rounded-sm bg-ink px-6 font-semibold text-paper hover:bg-ink/90"
+          >
+            Pay {formatMoney(booking.quote.totalMinor)} now
+          </Link>
+          <p className="text-sm text-ink-soft">
+            You can also pay later at /pay/{booking.reference}. Once it is paid and
+            checked in, you will get a tracking number to follow its journey.
           </p>
         </div>
       </div>

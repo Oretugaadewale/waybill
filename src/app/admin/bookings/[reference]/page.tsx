@@ -59,6 +59,22 @@ async function BookingContent({
   if (!data) notFound();
   const b = data as unknown as BookingRow;
 
+  const { data: paymentRows } = await access.supabase
+    .from("payments")
+    .select(
+      "paystack_reference, amount_minor, status, channel, paid_at, created_at, bookings!inner(reference)",
+    )
+    .eq("bookings.reference", reference)
+    .order("created_at", { ascending: false });
+  const payments = (paymentRows ?? []) as unknown as {
+    paystack_reference: string;
+    amount_minor: number;
+    status: "initialized" | "success" | "failed" | "abandoned";
+    channel: string | null;
+    paid_at: string | null;
+    created_at: string;
+  }[];
+
   const origin = b.origin_country as OriginCountry;
   const dims =
     b.length_cm !== null && b.width_cm !== null && b.height_cm !== null
@@ -190,6 +206,35 @@ async function BookingContent({
             ) : null}
           </section>
 
+          <Panel title="Payments">
+            {payments.length === 0 ? (
+              <p className="text-ink-soft">
+                No online payment yet. The customer pays at{" "}
+                <Link
+                  href={`/pay/${b.reference}`}
+                  className="underline underline-offset-4"
+                >
+                  /pay/{b.reference}
+                </Link>
+                .
+              </p>
+            ) : (
+              <ul className="divide-y divide-rule text-sm">
+                {payments.map((p) => (
+                  <li key={p.paystack_reference} className="py-2">
+                    <span className="font-semibold">{PAYMENT_LABELS[p.status]}</span>,{" "}
+                    {formatMoney(p.amount_minor)}
+                    {p.channel ? ` by ${p.channel}` : ""}
+                    <span className="block text-ink-soft">
+                      {formatLagosDateTime(p.paid_at ?? p.created_at)}.{" "}
+                      <span className="font-mono text-xs">{p.paystack_reference}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+
           {open ? (
             <>
               <Panel title="Create the shipment">
@@ -216,6 +261,13 @@ async function BookingContent({
     </AdminShell>
   );
 }
+
+const PAYMENT_LABELS = {
+  initialized: "Started, not finished",
+  success: "Paid",
+  failed: "Failed",
+  abandoned: "Abandoned",
+} as const;
 
 function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (

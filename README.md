@@ -5,7 +5,7 @@ Shipment tracking and payments for cross-border logistics between Nigeria, the U
 I built Waybill as a portfolio project, drawing on how we run operations at eShopAfrica, an international logistics company in Lagos. Customers there ask one question more than any other: _where is my package?_ Waybill answers it, and over the next stages it grows into the full flow: booking, quoting, admin tools and paying with Paystack.
 
 **Live demo:** [waybill-dusky.vercel.app](https://waybill-dusky.vercel.app)
-**Status:** Stage 4 of 6 complete. Customers price and book shipments online; staff turn bookings into tracked shipments from the admin dashboard. All data and prices are invented.
+**Status:** Stage 5 of 6 complete. Customers price, book and pay online with Paystack (test mode); staff turn paid bookings into tracked shipments. All data and prices are invented.
 
 ![Tracking page on desktop](docs/screenshots/desktop-tracking.png)
 
@@ -82,6 +82,44 @@ erDiagram
 | Admin                   | Read, create and update; remove the latest scan; cancel, never delete | Own row only | Yes            |
 
 Admins are added with SQL only, so there is no API an attacker could use to make themselves one. `is_admin()` and `get_shipment()` are `security definer` functions with a locked `search_path`, and tables are not exposed to the Data API unless a grant says so.
+
+## What Stage 5 adds
+
+- **Pay online with Paystack.** After booking, the customer pays on Paystack's checkout by card, bank transfer or USSD. The demo runs in Paystack **test mode**, so only test cards work and no real money moves.
+- **A payment page per booking** at `/pay/[reference]`, which shows the total and the payment status. It shows no names, phone numbers or addresses.
+- **Payments in the admin dashboard.** Each booking lists its payment attempts, and paid bookings are marked so staff know which to ship.
+
+### How a payment is confirmed
+
+```mermaid
+sequenceDiagram
+  participant C as Customer
+  participant W as Waybill server
+  participant P as Paystack
+  participant D as Database
+  C->>W: Pay for BK-7KQ4MX
+  W->>D: Load booking (server key)
+  W->>W: Recompute the price from the rate card
+  W->>D: Record attempt BK-7KQ4MX-<random> for the exact amount
+  W->>P: Initialize transaction
+  W-->>C: Redirect to Paystack checkout
+  C->>P: Pay
+  P-->>C: Redirect back with ?reference=...
+  C->>W: /pay/BK-7KQ4MX/callback
+  W->>P: Verify transaction (secret key)
+  W->>D: Record result; amount and currency must match
+  P->>W: Webhook charge.success (signed)
+  W->>W: Check HMAC-SHA512 signature
+  W->>P: Verify again
+  W->>D: Record result (already paid: no change)
+```
+
+- **The browser is never trusted.** The amount comes from the rate card, applied to the booking stored in the database. If that no longer matches what the customer was shown, Waybill refuses to charge rather than charge a different amount.
+- **Every result is verified with Paystack's API** using the secret key. The `?reference=` in the redirect only tells Waybill which transaction to ask about.
+- **The webhook checks Paystack's signature** (an HMAC-SHA512 of the raw body) before doing anything. It then verifies with the API anyway, so a payment counts even if the customer closes the tab before coming back.
+- **Recording is idempotent.** The redirect and the webhook usually both arrive, and the second one changes nothing.
+- **The server key.** The app reaches the database with the public key, so the payment functions also demand a server key that only Vercel holds. The database keeps just its SHA-256 hash, in a schema the Data API cannot reach. Without it, nobody can read a customer's email or mark a booking as paid.
+- [`supabase/tests/payments.sql`](supabase/tests/payments.sql) checks these rules against a live database and undoes every change.
 
 ## What Stage 4 adds
 
@@ -171,6 +209,12 @@ Then open http://localhost:3000. Without Supabase settings the app runs on the b
    select id from auth.users where email = 'you@example.com';
    ```
 
+To take payments, also:
+
+5. Add `PAYSTACK_SECRET_KEY` (your `sk_test_...` key) to `.env.local` or your host's environment.
+6. In the SQL Editor run `select public.create_server_key();` once and store the result as `WAYBILL_SERVER_KEY`. Only its hash is kept in the database.
+7. In Paystack, under **Settings > API Keys & Webhooks**, set the **test** webhook URL to `https://<your-domain>/api/paystack/webhook`.
+
 `npm run db:seed-sql` regenerates `seed.sql` from the sample data, so the database and the offline fallback never drift apart.
 
 | Command             | What it does                 |
@@ -196,12 +240,14 @@ src/
   lib/pricing/            Rate card, zones and the quote calculator
   lib/bookings/           Booking validation and admin helpers
   app/quote, app/book     Public quote calculator and booking form
+  app/pay, app/api        Payment page, Paystack callback and webhook
+  lib/payments/           Paystack client, signature check and payment confirmation
   lib/supabase/           Supabase clients for the signed-in user and the public
   fonts/                  Self-hosted IBM Plex Sans and Mono
   proxy.ts                Refreshes the session and guards /admin
 supabase/
   migrations/             Schema, grants, Row Level Security and the tracking rules
-  tests/                  SQL checks for the tracking and booking rules
+  tests/                  SQL checks for the tracking, booking and payment rules
   seed.sql                The six sample shipments
 ```
 
@@ -209,14 +255,14 @@ The tracking logic, route rules and time zone handling are plain TypeScript with
 
 ## Roadmap
 
-| Stage | Scope                                                              | Status  |
-| ----- | ------------------------------------------------------------------ | ------- |
-| 1     | Project setup and public tracking page                             | Done    |
-| 2     | Supabase database, Row Level Security and admin login              | Done    |
-| 3     | Admin dashboard to create shipments and post tracking updates      | Done    |
-| 4     | Booking form and a quote calculator by weight, route and service   | Done    |
-| 5     | Paystack test payments with server-side verification and a webhook | Next    |
-| 6     | End-to-end tests, final deploy and a write-up of the decisions     | Planned |
+| Stage | Scope                                                              | Status |
+| ----- | ------------------------------------------------------------------ | ------ |
+| 1     | Project setup and public tracking page                             | Done   |
+| 2     | Supabase database, Row Level Security and admin login              | Done   |
+| 3     | Admin dashboard to create shipments and post tracking updates      | Done   |
+| 4     | Booking form and a quote calculator by weight, route and service   | Done   |
+| 5     | Paystack test payments with server-side verification and a webhook | Done   |
+| 6     | End-to-end tests, final deploy and a write-up of the decisions     | Next   |
 
 ## About
 
