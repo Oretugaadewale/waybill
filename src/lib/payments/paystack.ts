@@ -83,6 +83,8 @@ export async function initializeTransaction(input: {
   amountMinor: number;
   reference: string;
   callbackUrl: string;
+  /** Where Paystack sends the customer if they close the checkout. */
+  cancelUrl: string;
   bookingReference: string;
 }): Promise<{ authorizationUrl: string }> {
   const { data } = await call<{ authorization_url: string }>("/transaction/initialize", {
@@ -93,7 +95,7 @@ export async function initializeTransaction(input: {
       currency: "NGN",
       reference: input.reference,
       callback_url: input.callbackUrl,
-      metadata: { booking_reference: input.bookingReference },
+      metadata: { booking_reference: input.bookingReference, cancel_action: input.cancelUrl },
     },
   });
   if (!/^https:\/\/checkout\.paystack\.com\//.test(data.authorization_url)) {

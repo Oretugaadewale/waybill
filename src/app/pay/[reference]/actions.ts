@@ -59,6 +59,9 @@ export async function startPayment(reference: string): Promise<PayState> {
       amountMinor: amount.amountMinor,
       reference: paystackReference,
       callbackUrl: `${proto}://${host}/pay/${reference}/callback`,
+      // Closing the checkout lands on the booking page, not the page the
+      // customer paid from, so a booking made on /book never looks lost.
+      cancelUrl: `${proto}://${host}/pay/${reference}`,
       bookingReference: reference,
     }));
   } catch (err) {

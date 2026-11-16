@@ -71,6 +71,7 @@ describe("Paystack API calls", () => {
       amountMinor: 5_240_625,
       reference: "BK-7KQ4MX-0123456789ab",
       callbackUrl: "https://waybill.example/pay/BK-7KQ4MX/callback",
+      cancelUrl: "https://waybill.example/pay/BK-7KQ4MX",
       bookingReference: "BK-7KQ4MX",
     });
 
@@ -82,6 +83,10 @@ describe("Paystack API calls", () => {
       amount: 5_240_625,
       currency: "NGN",
       reference: "BK-7KQ4MX-0123456789ab",
+      metadata: {
+        booking_reference: "BK-7KQ4MX",
+        cancel_action: "https://waybill.example/pay/BK-7KQ4MX",
+      },
     });
   });
 
@@ -105,6 +110,7 @@ describe("Paystack API calls", () => {
         amountMinor: 100,
         reference: "BK-7KQ4MX-0123456789ab",
         callbackUrl: "https://x/pay",
+        cancelUrl: "https://x/pay",
         bookingReference: "BK-7KQ4MX",
       }),
     ).rejects.toThrow(/checkout URL/);
