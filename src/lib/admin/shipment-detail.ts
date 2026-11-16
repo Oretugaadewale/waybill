@@ -20,18 +20,8 @@ export interface AdminShipmentDetailRow {
   cancelled_at: string | null;
   cancel_reason: string | null;
   created_at: string;
-  bookings: {
-    reference: string;
-    service: ServiceLevel;
-    origin_country: string;
-    destination_country: string;
-    weight_kg: number | string;
-    length_cm: number | string | null;
-    width_cm: number | string | null;
-    height_cm: number | string | null;
-    collection: "drop_off" | "pickup";
-    total_minor: number;
-  }[];
+  /** One booking at most (bookings.shipment_id is unique), so it comes back as an object. */
+  bookings: BookingLink | BookingLink[] | null;
   tracking_events: {
     id: string;
     stage: ShipmentStage;
@@ -43,6 +33,19 @@ export interface AdminShipmentDetailRow {
   }[];
 }
 
+interface BookingLink {
+  reference: string;
+  service: ServiceLevel;
+  origin_country: string;
+  destination_country: string;
+  weight_kg: number | string;
+  length_cm: number | string | null;
+  width_cm: number | string | null;
+  height_cm: number | string | null;
+  collection: "drop_off" | "pickup";
+  total_minor: number;
+}
+
 export const ADMIN_DETAIL_SELECT =
   "tracking_number, origin_city, origin_country, origin_hub, destination_city, destination_country, destination_hub, service, carrier, weight_kg, pieces, contents, estimated_delivery, cancelled_at, cancel_reason, created_at, tracking_events(id, stage, occurred_at, local_offset_minutes, location, note, created_at), bookings(reference, service, origin_country, destination_country, weight_kg, length_cm, width_cm, height_cm, collection, total_minor)";
 
@@ -50,7 +53,7 @@ export interface AdminShipmentDetail {
   shipment: Shipment;
   cancelReason: string | null;
   latestEventId: string | null;
-  booking: AdminShipmentDetailRow["bookings"][number] | null;
+  booking: BookingLink | null;
 }
 
 export function toAdminDetail(row: AdminShipmentDetailRow): AdminShipmentDetail {
@@ -88,7 +91,7 @@ export function toAdminDetail(row: AdminShipmentDetailRow): AdminShipmentDetail 
     shipment,
     cancelReason: row.cancel_reason,
     latestEventId: events.at(-1)?.id ?? null,
-    booking: row.bookings?.[0] ?? null,
+    booking: Array.isArray(row.bookings) ? (row.bookings[0] ?? null) : row.bookings,
   };
 }
 
