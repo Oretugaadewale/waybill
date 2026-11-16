@@ -79,12 +79,12 @@ test.describe("live site", () => {
     await expect(page.locator("[aria-invalid=true]")).toHaveCount(10);
   });
 
-  test("a paid booking says so, and tells the customer what happens next", async ({
+  test("a paid booking shows when it was paid and cannot be paid twice", async ({
     page,
   }) => {
     await open(page, `/pay/${PAID_BOOKING}`);
     await expect(page.getByText(PAID_BOOKING, { exact: true }).first()).toBeVisible();
-    await expect(page.getByText("Payment received.")).toBeVisible();
+    await expect(page.getByText(/^Paid on \d{1,2} \w{3} \d{4}/)).toBeVisible();
     await expect(page.getByRole("button", { name: /^Pay ₦/ })).toHaveCount(0);
   });
 
