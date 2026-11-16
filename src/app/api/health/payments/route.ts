@@ -11,6 +11,8 @@ export async function GET() {
   const key = process.env.PAYSTACK_SECRET_KEY?.trim() ?? "";
   return NextResponse.json(
     {
+      // Which commit is live, so checks can wait for a new deploy to land.
+      version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
       database: getSupabaseEnv() ? "ok" : "missing",
       paystackSecretKey: paystackKeyStatus(),
       paystackMode: key.startsWith("sk_test_")
