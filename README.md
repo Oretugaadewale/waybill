@@ -11,7 +11,7 @@ I built Waybill as a portfolio project, drawing on how we run operations at eSho
 
 ## Try it
 
-Open the demo and enter any of these sample tracking numbers. Each one is at a different stage of its journey.
+Run the project without a database and these sample tracking numbers work, each at a different stage of its journey. The live demo uses only real bookings, so to see tracking there, book a shipment and pay with a Paystack test card.
 
 | Tracking number | Route               | Stage            |
 | --------------- | ------------------- | ---------------- |
