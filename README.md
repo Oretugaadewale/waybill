@@ -219,15 +219,31 @@ To take payments, also:
 
 `npm run db:seed-sql` regenerates `seed.sql` from the sample data, so the database and the offline fallback never drift apart.
 
-| Command             | What it does                 |
-| ------------------- | ---------------------------- |
-| `npm run dev`       | Start the development server |
-| `npm test`          | Run the test suite           |
-| `npm run lint`      | Lint the code                |
-| `npm run typecheck` | Type check the whole project |
-| `npm run build`     | Build for production         |
+| Command                 | What it does                                 |
+| ----------------------- | -------------------------------------------- |
+| `npm run dev`           | Start the development server                 |
+| `npm test`              | Run the unit and component tests             |
+| `npm run test:e2e`      | Run the end-to-end tests on the sample data  |
+| `npm run test:e2e:live` | Run the read-only checks on the deployed app |
+| `npm run lint`          | Lint the code                                |
+| `npm run typecheck`     | Type check the whole project                 |
+| `npm run build`         | Build for production                         |
 
-Every push to `main` runs formatting, lint, type checks, tests and a production build in CI.
+Every push to `main` runs formatting, lint, type checks, unit tests, a production build and the end-to-end tests in CI.
+
+### End-to-end tests
+
+The browser tests use [Playwright](https://playwright.dev) and live in [`e2e`](e2e). They run in two modes.
+
+- **Sample data** (`e2e/sample`, on every push). The production build runs with no database, on desktop and phone screen sizes. The tests cover tracking (including messy input like `wb 2087 ng`), every sample shipment, the quote rules (rounding up, the sea minimum, volumetric weight, the pickup fee), the booking form's errors and its bot check, and the not-found pages. Any uncaught error in the page fails the test. That is how these tests found a hydration bug: Node and Chrome name some countries differently.
+- **Live** (`e2e/live`, after each deploy and every morning). Read-only checks on the deployed site. They check that payments are set up in Paystack **test** mode, that a real shipment tracks, that the server rejects an incomplete booking, that a paid booking can't be paid twice, that the admin area needs a sign-in, and that the webhook rejects unsigned requests.
+
+The full journey (quote, book, pay on Paystack's test checkout, land on the paid page) saves a real booking. It only runs when the **Live checks** workflow is started by hand with **allow_writes** ticked, or locally with `E2E_ALLOW_WRITES=1`.
+
+```bash
+npx playwright install chromium   # once
+npm run build && npm run test:e2e
+```
 
 ## Project structure
 
@@ -257,14 +273,14 @@ The tracking logic, route rules and time zone handling are plain TypeScript with
 
 ## Roadmap
 
-| Stage | Scope                                                              | Status |
-| ----- | ------------------------------------------------------------------ | ------ |
-| 1     | Project setup and public tracking page                             | Done   |
-| 2     | Supabase database, Row Level Security and admin login              | Done   |
-| 3     | Admin dashboard to create shipments and post tracking updates      | Done   |
-| 4     | Booking form and a quote calculator by weight, route and service   | Done   |
-| 5     | Paystack test payments with server-side verification and a webhook | Done   |
-| 6     | End-to-end tests, final deploy and a write-up of the decisions     | Next   |
+| Stage | Scope                                                              | Status                      |
+| ----- | ------------------------------------------------------------------ | --------------------------- |
+| 1     | Project setup and public tracking page                             | Done                        |
+| 2     | Supabase database, Row Level Security and admin login              | Done                        |
+| 3     | Admin dashboard to create shipments and post tracking updates      | Done                        |
+| 4     | Booking form and a quote calculator by weight, route and service   | Done                        |
+| 5     | Paystack test payments with server-side verification and a webhook | Done                        |
+| 6     | End-to-end tests, final deploy and a write-up of the decisions     | Partly done: tests in place |
 
 ## About
 
