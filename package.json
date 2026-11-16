@@ -12,7 +12,9 @@
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "db:seed-sql": "node --experimental-strip-types --no-warnings scripts/generate-seed.ts"
+    "db:seed-sql": "node --experimental-strip-types --no-warnings scripts/generate-seed.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:live": "E2E_TARGET=live playwright test"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -25,6 +27,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/turbopack": "4.3.3",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
