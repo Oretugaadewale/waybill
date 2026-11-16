@@ -1,5 +1,6 @@
-import { getAllCountries, getCountry } from "countries-and-timezones";
+import { getCountry } from "countries-and-timezones";
 import { countryName } from "./country-name";
+import { COUNTRY_NAMES } from "./country-names";
 
 export { countryName };
 
@@ -8,11 +9,13 @@ export interface CountryOption {
   name: string;
 }
 
-/** Every country with at least one time zone, sorted by name. */
-export const COUNTRIES: CountryOption[] = Object.values(getAllCountries())
-  .filter((c) => c.timezones.length > 0 && /^[A-Z]{2}$/.test(c.id))
-  .map((c) => ({ code: c.id, name: countryName(c.id) }))
-  .sort((a, b) => a.name.localeCompare(b.name, "en"));
+/**
+ * Every country with at least one time zone, sorted by name. The order comes
+ * from the fixed name table, not a run-time sort, so server and browser agree.
+ */
+export const COUNTRIES: CountryOption[] = Object.entries(COUNTRY_NAMES)
+  .filter(([code]) => (getCountry(code)?.timezones.length ?? 0) > 0)
+  .map(([code, name]) => ({ code, name }));
 
 const COUNTRY_CODES = new Set(COUNTRIES.map((c) => c.code));
 
@@ -139,11 +142,21 @@ export function timeZoneOptions(countryCode: string): {
   return { common, other };
 }
 
+/** Names an earlier version stored in scan locations, before the fixed table. */
+const OLDER_COUNTRY_NAMES: Record<string, string> = {
+  "Hong Kong SAR China": "HK",
+  "Macao SAR China": "MO",
+  "Palestinian Territories": "PS",
+  "Falkland Islands (Islas Malvinas)": "FK",
+};
+
 /**
  * The country of a scan's location, which is stored as "Place, Country".
  * Used to start the next scan in the same country.
  */
 export function countryCodeFromLocation(location: string): string | null {
-  const name = location.split(",").at(-1)?.trim();
-  return COUNTRIES.find((c) => c.name === name)?.code ?? null;
+  const name = location.split(",").at(-1)?.trim() ?? "";
+  return (
+    COUNTRIES.find((c) => c.name === name)?.code ?? OLDER_COUNTRY_NAMES[name] ?? null
+  );
 }

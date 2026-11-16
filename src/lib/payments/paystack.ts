@@ -95,7 +95,10 @@ export async function initializeTransaction(input: {
       currency: "NGN",
       reference: input.reference,
       callback_url: input.callbackUrl,
-      metadata: { booking_reference: input.bookingReference, cancel_action: input.cancelUrl },
+      metadata: {
+        booking_reference: input.bookingReference,
+        cancel_action: input.cancelUrl,
+      },
     },
   });
   if (!/^https:\/\/checkout\.paystack\.com\//.test(data.authorization_url)) {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   COUNTRIES,
+  countryCodeFromLocation,
   countryName,
   isKnownCountry,
   offsetMinutesAt,
@@ -101,5 +102,33 @@ describe("countryCodeFromLocation", () => {
     );
     expect(countryCodeFromLocation("Ojota office, Lagos, Nigeria")).toBe("NG");
     expect(countryCodeFromLocation("Somewhere")).toBeNull();
+  });
+});
+
+describe("country names", () => {
+  it("has a fixed name for every country the time zone data knows", async () => {
+    const { getAllCountries } = await import("countries-and-timezones");
+    const { COUNTRY_NAMES } = await import("./country-names");
+    const missing = Object.keys(getAllCountries()).filter(
+      (code) => /^[A-Z]{2}$/.test(code) && !COUNTRY_NAMES[code],
+    );
+    expect(missing).toEqual([]);
+  });
+
+  it("uses the short names people know, whatever the ICU data says", () => {
+    expect(countryName("HK")).toBe("Hong Kong");
+    expect(countryName("PS")).toBe("Palestine");
+    expect(countryName("GB")).toBe("United Kingdom");
+  });
+
+  it("lists countries in alphabetical order", () => {
+    const names = COUNTRIES.map((c) => c.name);
+    expect(names.slice(0, 2)).toEqual(["Afghanistan", "Åland Islands"]);
+    expect([...names].sort((a, b) => a.localeCompare(b, "en"))).toEqual(names);
+  });
+
+  it("still reads scans saved with the older long names", () => {
+    expect(countryCodeFromLocation("Kowloon, Hong Kong SAR China")).toBe("HK");
+    expect(countryCodeFromLocation("Kowloon, Hong Kong")).toBe("HK");
   });
 });
