@@ -140,3 +140,22 @@ export async function declineBooking(
 
   redirect(`/admin/bookings/${reference}`);
 }
+
+export async function markRefunded(
+  reference: string,
+  paystackReference: string,
+): Promise<FormState> {
+  const supabase = await adminClientForAction();
+  if (!supabase) return stateWith(false, "Sign in again as an admin.", {});
+
+  const { data, error } = await supabase.rpc("mark_payment_refunded", {
+    p_paystack_reference: paystackReference,
+  });
+  if (error) {
+    if (error.code !== "P0001") console.error("[admin] mark refunded failed", error);
+    return stateWith(false, databaseMessage(error), {});
+  }
+  if (!data) return stateWith(false, "That payment is already marked as refunded.", {});
+
+  redirect(`/admin/bookings/${reference}`);
+}

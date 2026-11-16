@@ -21,7 +21,7 @@ export function RemoveLatestScan({
 
   return (
     <div className="flex flex-col gap-3">
-      <FormMessage ok={state.ok} message={state.message} />
+      <FormMessage ok={state.ok} message={state.message} stamp={state.savedAt} />
       {confirming ? (
         <form action={formAction} className="flex flex-wrap items-center gap-3">
           <p className="w-full">

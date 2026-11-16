@@ -9,8 +9,16 @@ const text = (label: string, min: number, max: number) =>
   z
     .string()
     .trim()
-    .min(min, min <= 1 ? `Enter the ${label}.` : `Enter the full ${label}.`)
+    .min(1, `Enter the ${label}.`)
+    .min(min, `The ${label} looks too short. Check it.`)
     .max(max, `Keep the ${label} under ${max + 1} characters.`);
+
+/** A number field where empty means "not filled in", not zero. */
+const requiredNumber = (emptyMessage: string, rules: (n: z.ZodNumber) => z.ZodNumber) =>
+  z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    rules(z.coerce.number({ error: emptyMessage })),
+  );
 
 const phone = (whose: string) =>
   z
@@ -106,25 +114,29 @@ export function toQuoteInput(d: QuoteFields): QuoteInput {
 export const bookingSchema = z
   .object({
     destinationCity: text("destination city", 1, 80),
-    pieces: z.coerce
-      .number({ error: "Enter the number of boxes." })
-      .int("Use a whole number of boxes.")
-      .min(1, "There must be at least 1 box.")
-      .max(99, "For more than 99 boxes, contact us."),
-    contents: text("description of the contents", 3, 200),
-    declaredValue: z.coerce
-      .number({ error: "Enter the value in naira, or 0." })
-      .min(0, "The value cannot be negative.")
-      .max(100_000_000, "For goods worth more than ₦100 million, contact us."),
+    pieces: requiredNumber("Enter the number of boxes.", (n) =>
+      n
+        .int("Use a whole number of boxes.")
+        .min(1, "There must be at least 1 box.")
+        .max(99, "For more than 99 boxes, contact us."),
+    ),
+    contents: text("contents", 3, 200),
+    declaredValue: requiredNumber(
+      "Enter what the goods are worth in naira, or 0 for documents.",
+      (n) =>
+        n
+          .min(0, "The value cannot be negative.")
+          .max(100_000_000, "For goods worth more than ₦100 million, contact us."),
+    ),
     pickupAddress: z
       .string()
       .trim()
       .max(300, "Keep the address under 301 characters.")
       .optional(),
-    senderName: text("sender's name", 2, 100),
+    senderName: text("sender's full name", 2, 100),
     senderPhone: phone("the sender's"),
     senderEmail: email,
-    receiverName: text("receiver's name", 2, 100),
+    receiverName: text("receiver's full name", 2, 100),
     receiverPhone: phone("the receiver's"),
     receiverEmail: z.union([z.literal(""), email]).optional(),
     receiverAddress: text("delivery address", 5, 300),

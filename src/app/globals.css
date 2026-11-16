@@ -53,3 +53,30 @@ body {
     transform: scaleX(1);
   }
 }
+
+/* Success messages fade and fold away after a few seconds. */
+@keyframes flash-out {
+  0%,
+  80% {
+    opacity: 1;
+    max-height: 10rem;
+  }
+  100% {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin: 0;
+  }
+}
+
+.flash-out {
+  overflow: hidden;
+  animation: flash-out 8s ease-in forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flash-out {
+    animation: none;
+  }
+}

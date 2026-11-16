@@ -25,6 +25,12 @@ export interface BookingForPayment {
   senderEmail: string;
   totalMinor: number;
   paidAt: string | null;
+  /** Set once staff have turned the booking into a shipment. */
+  trackingNumber: string | null;
+  latestAttempt: {
+    reference: string;
+    status: "initialized" | "success" | "failed" | "abandoned";
+  } | null;
 }
 
 export function serverKeyStatus(): "ok" | "missing" | "invalid" {
@@ -90,7 +96,8 @@ export function amountToCharge(
   return { ok: true, amountMinor: priced.quote.totalMinor };
 }
 
-export type PaymentOutcome = "paid" | "already_paid" | "failed" | "abandoned" | "pending";
+export type PaymentOutcome =
+  "paid" | "already_paid" | "refund_needed" | "failed" | "abandoned" | "pending";
 
 /**
  * Asks Paystack about a transaction and records the answer. Used by both the
@@ -118,4 +125,22 @@ export async function confirmPayment(paystackReference: string): Promise<Payment
   });
   if (error) throw new Error(`Could not record payment: ${error.message}`);
   return data as PaymentOutcome;
+}
+
+/**
+ * Paystack tells us about successful payments (webhook) but not declined
+ * cards, and a declined customer often just closes the checkout. So when a
+ * page shows a booking whose last attempt is still open, ask Paystack what
+ * happened to it. Safe to repeat; errors leave things as they were.
+ */
+export async function refreshOpenAttempt(
+  booking: BookingForPayment,
+): Promise<PaymentOutcome | null> {
+  const attempt = booking.latestAttempt;
+  if (!attempt || attempt.status !== "initialized") return null;
+  try {
+    return await confirmPayment(attempt.reference);
+  } catch {
+    return null;
+  }
 }

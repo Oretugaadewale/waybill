@@ -1,9 +1,10 @@
 "use client";
 
+import { submitWithoutReset } from "@/components/form/submit-without-reset";
 import { useActionState } from "react";
 import { initialFormState } from "@/lib/admin/form-state";
 import { Field, FormMessage, SubmitButton, inputClass } from "../../_components/fields";
-import { convertBooking, declineBooking } from "../actions";
+import { convertBooking, declineBooking, markRefunded } from "../actions";
 
 export function ConvertBookingForm({
   reference,
@@ -48,9 +49,13 @@ export function ConvertBookingForm({
   );
 
   return (
-    <form action={formAction} noValidate className="grid gap-5 sm:grid-cols-2">
+    <form
+      onSubmit={submitWithoutReset(formAction)}
+      noValidate
+      className="grid gap-5 sm:grid-cols-2"
+    >
       <div className="sm:col-span-2">
-        <FormMessage ok={state.ok} message={state.message} />
+        <FormMessage ok={state.ok} message={state.message} stamp={state.savedAt} />
       </div>
       {input("originHub", "From hub", { code: true, fallback: defaults.originHub })}
       {input("destinationHub", "To hub", {
@@ -80,8 +85,12 @@ export function DeclineBookingForm({ reference }: { reference: string }) {
     initialFormState,
   );
   return (
-    <form action={formAction} noValidate className="flex flex-col gap-4">
-      <FormMessage ok={state.ok} message={state.message} />
+    <form
+      onSubmit={submitWithoutReset(formAction)}
+      noValidate
+      className="flex flex-col gap-4"
+    >
+      <FormMessage ok={state.ok} message={state.message} stamp={state.savedAt} />
       <Field
         id="decline-reason"
         label="Reason"
@@ -106,6 +115,27 @@ export function DeclineBookingForm({ reference }: { reference: string }) {
           Decline booking
         </SubmitButton>
       </div>
+    </form>
+  );
+}
+
+export function MarkRefundedButton({
+  reference,
+  paystackReference,
+}: {
+  reference: string;
+  paystackReference: string;
+}) {
+  const [state, formAction, pending] = useActionState(
+    markRefunded.bind(null, reference, paystackReference),
+    initialFormState,
+  );
+  return (
+    <form onSubmit={submitWithoutReset(formAction)} className="mt-3 flex flex-col gap-2">
+      <FormMessage ok={state.ok} message={state.message} stamp={state.savedAt} />
+      <SubmitButton pending={pending} pendingText="Saving" tone="secondary">
+        Mark as refunded
+      </SubmitButton>
     </form>
   );
 }

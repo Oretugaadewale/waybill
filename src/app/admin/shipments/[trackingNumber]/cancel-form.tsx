@@ -1,5 +1,6 @@
 "use client";
 
+import { submitWithoutReset } from "@/components/form/submit-without-reset";
 import { useActionState } from "react";
 import { initialFormState } from "@/lib/admin/form-state";
 import { Field, FormMessage, SubmitButton, inputClass } from "../../_components/fields";
@@ -12,8 +13,12 @@ export function CancelForm({ trackingNumber }: { trackingNumber: string }) {
   );
 
   return (
-    <form action={formAction} noValidate className="flex flex-col gap-4">
-      <FormMessage ok={state.ok} message={state.message} />
+    <form
+      onSubmit={submitWithoutReset(formAction)}
+      noValidate
+      className="flex flex-col gap-4"
+    >
+      <FormMessage ok={state.ok} message={state.message} stamp={state.savedAt} />
       <Field
         id="reason"
         label="Reason"

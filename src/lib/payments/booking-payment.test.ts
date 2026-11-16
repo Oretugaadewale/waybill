@@ -20,6 +20,8 @@ const booking: BookingForPayment = {
   senderEmail: "ada@example.com",
   totalMinor: 5_240_625,
   paidAt: null,
+  trackingNumber: null,
+  latestAttempt: null,
 };
 
 describe("amountToCharge", () => {

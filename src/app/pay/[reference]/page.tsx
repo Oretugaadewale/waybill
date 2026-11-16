@@ -3,18 +3,22 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense, type ReactNode } from "react";
-import { isBookingReference, formatLagosDateTime } from "@/lib/bookings/admin";
+import { Money } from "@/components/money";
+import { formatLagosDateTime, isBookingReference } from "@/lib/bookings/admin";
 import {
   amountToCharge,
   loadBookingForPayment,
   paymentsConfigured,
+  refreshOpenAttempt,
+  type BookingForPayment,
 } from "@/lib/payments/booking-payment";
 import { countryName } from "@/lib/places";
 import { formatMoney } from "@/lib/pricing/quote";
+import { RATE_CARD, type OriginCountry } from "@/lib/pricing/rate-card";
 import { PayButton } from "./pay-button";
 
 export const metadata: Metadata = {
-  title: "Pay for your booking",
+  title: "Your booking",
   robots: { index: false, follow: false },
 };
 
@@ -22,12 +26,16 @@ const RESULT_MESSAGES: Record<string, { tone: "ok" | "warn"; text: string }> = {
   paid: { tone: "ok", text: "Payment received. Thank you." },
   failed: {
     tone: "warn",
-    text: "The payment did not go through. You have not been charged; try again.",
+    text: "Your card was declined, so you have not been charged. Try again or use another card.",
   },
   abandoned: { tone: "warn", text: "The payment was not finished. You can try again." },
   pending: {
     tone: "warn",
     text: "We are still waiting for Paystack to confirm the payment. Refresh this page in a minute.",
+  },
+  refund_needed: {
+    tone: "warn",
+    text: "We received your payment, but this booking was no longer open for payment. Our team has been alerted and will refund you.",
   },
   unknown: { tone: "warn", text: "We could not match that payment to this booking." },
 };
@@ -58,16 +66,30 @@ async function PayContent({
     );
   }
 
-  const booking = await loadBookingForPayment(reference);
+  let booking = await loadBookingForPayment(reference);
   if (!booking) notFound();
 
-  const result = (await searchParams).result;
-  const banner = typeof result === "string" ? RESULT_MESSAGES[result] : undefined;
+  // A customer who was declined usually just closes Paystack's page, so find
+  // out what happened to their last attempt before showing the booking.
+  const refreshed = await refreshOpenAttempt(booking);
+  if (refreshed === "paid" || refreshed === "failed") {
+    booking = (await loadBookingForPayment(reference)) ?? booking;
+  }
+
+  const param = (await searchParams).result;
+  const result =
+    typeof param === "string"
+      ? param
+      : booking.status === "awaiting_payment" &&
+          booking.latestAttempt?.status === "failed"
+        ? "failed"
+        : undefined;
+  const banner = result ? RESULT_MESSAGES[result] : undefined;
   const amount = amountToCharge(booking);
 
   return (
     <Shell reference={reference}>
-      {banner ? (
+      {banner && !(result === "failed" && booking.status !== "awaiting_payment") ? (
         <p
           role="status"
           className={
@@ -80,6 +102,10 @@ async function PayContent({
         </p>
       ) : null}
 
+      {booking.trackingNumber ? (
+        <TrackingNumberCard trackingNumber={booking.trackingNumber} />
+      ) : null}
+
       <dl className="divide-y divide-rule rounded-sm border-2 border-ink bg-paper px-5 text-sm">
         <Row label="Service">{booking.service}</Row>
         <Row label="Route">
@@ -89,48 +115,13 @@ async function PayContent({
         <Row label="Weight">{Number(booking.weightKg)} kg</Row>
         <Row label="Total">
           <span className="font-mono text-lg font-semibold">
-            {formatMoney(Number(booking.totalMinor))}
+            <Money minor={Number(booking.totalMinor)} />
           </span>{" "}
           <span className="text-ink-soft">including VAT</span>
         </Row>
       </dl>
 
-      {booking.status === "awaiting_payment" ? (
-        amount.ok ? (
-          <div className="flex flex-col gap-3">
-            <PayButton
-              reference={reference}
-              label={`Pay ${formatMoney(amount.amountMinor)} with Paystack`}
-            />
-            <p className="text-sm text-ink-soft">
-              You will pay on Paystack&apos;s secure page by card, bank transfer or USSD,
-              then come back here. This demo uses Paystack test mode, so use a test card;
-              no real money moves.
-            </p>
-          </div>
-        ) : (
-          <p className="rounded-sm border-2 border-red-700 bg-paper px-4 py-3 font-medium text-red-700">
-            {amount.reason}
-          </p>
-        )
-      ) : booking.status === "paid" || booking.status === "converted" ? (
-        <div className="flex flex-col gap-2">
-          <p className="text-lg font-semibold">
-            Paid{booking.paidAt ? ` on ${formatLagosDateTime(booking.paidAt)}` : ""}.
-          </p>
-          <p className="text-ink-soft">
-            {booking.collection === "drop_off"
-              ? "Bring your package to the office and quote your booking reference."
-              : "A courier will call you to arrange the pickup."}{" "}
-            You will get a tracking number once it is checked in.
-          </p>
-        </div>
-      ) : (
-        <p>
-          This booking was declined, so it cannot be paid. Contact us if you have
-          questions.
-        </p>
-      )}
+      <NextStep booking={booking} amount={amount} />
 
       <p>
         <Link href="/" className="font-medium underline underline-offset-4">
@@ -138,6 +129,77 @@ async function PayContent({
         </Link>
       </p>
     </Shell>
+  );
+}
+
+function NextStep({
+  booking,
+  amount,
+}: {
+  booking: BookingForPayment;
+  amount: ReturnType<typeof amountToCharge>;
+}) {
+  if (booking.status === "awaiting_payment") {
+    return amount.ok ? (
+      <div className="flex flex-col gap-3">
+        <PayButton
+          reference={booking.reference}
+          label={`Pay ${formatMoney(amount.amountMinor)} with Paystack`}
+        />
+        <p className="text-sm text-ink-soft">
+          You will pay on Paystack&apos;s secure page by card, bank transfer or USSD, then
+          come back here. This demo uses Paystack test mode, so no real money moves.
+        </p>
+      </div>
+    ) : (
+      <p className="rounded-sm border-2 border-red-700 bg-paper px-4 py-3 font-medium text-red-700">
+        {amount.reason}
+      </p>
+    );
+  }
+
+  if (booking.status === "declined") {
+    return (
+      <p>
+        This booking was declined, so it cannot be paid. Contact us if you have questions.
+      </p>
+    );
+  }
+
+  const hub = RATE_CARD[booking.originCountry as OriginCountry]?.hub;
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-lg font-semibold">
+        Paid{booking.paidAt ? ` on ${formatLagosDateTime(booking.paidAt)}` : ""}.
+      </p>
+      {booking.trackingNumber ? (
+        <p className="text-ink-soft">
+          Your package is checked in. Follow it with the tracking number above.
+        </p>
+      ) : (
+        <p className="text-ink-soft">
+          {booking.collection === "drop_off"
+            ? `Bring your package to ${hub?.dropOff ?? "our office"} and quote your booking reference.`
+            : `A courier will call you to arrange the pickup in ${hub?.city ?? "your city"}.`}{" "}
+          Your tracking number will appear on this page once it is checked in.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function TrackingNumberCard({ trackingNumber }: { trackingNumber: string }) {
+  return (
+    <div className="rounded-sm border-2 border-ink bg-tape px-5 py-4">
+      <p className="text-sm font-medium">Your tracking number</p>
+      <p className="font-mono text-3xl font-semibold tracking-wide">{trackingNumber}</p>
+      <Link
+        href={`/track/${trackingNumber}`}
+        className="mt-3 inline-flex min-h-11 items-center rounded-sm bg-ink px-5 font-semibold text-paper hover:bg-ink/90"
+      >
+        Track your shipment
+      </Link>
+    </div>
   );
 }
 

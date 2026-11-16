@@ -1,5 +1,6 @@
 "use client";
 
+import { submitWithoutReset } from "@/components/form/submit-without-reset";
 import { useActionState } from "react";
 import { initialFormState } from "@/lib/admin/form-state";
 import { Field, FormMessage, SubmitButton, inputClass } from "../../_components/fields";
@@ -38,9 +39,13 @@ export function EditDetailsForm({ trackingNumber, current }: EditDetailsFormProp
   ];
 
   return (
-    <form action={formAction} noValidate className="grid gap-5 sm:grid-cols-2">
+    <form
+      onSubmit={submitWithoutReset(formAction)}
+      noValidate
+      className="grid gap-5 sm:grid-cols-2"
+    >
       <div className="sm:col-span-2">
-        <FormMessage ok={state.ok} message={state.message} />
+        <FormMessage ok={state.ok} message={state.message} stamp={state.savedAt} />
       </div>
       {fields.map((f) => (
         <Field

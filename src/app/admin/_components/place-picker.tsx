@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { COUNTRIES, countryName, timeZoneLabel, timeZonesFor } from "@/lib/places";
+import { COUNTRIES, countryName, timeZoneOptions, timeZonesFor } from "@/lib/places";
 import { Field, inputClass } from "./fields";
 
 interface PlacePickerProps {
@@ -88,11 +88,22 @@ export function PlacePicker({
               className={inputClass}
             >
               <option value="">Choose a time zone</option>
-              {zones.map((zone) => (
-                <option key={zone} value={zone}>
-                  {timeZoneLabel(zone)}
-                </option>
-              ))}
+              {(() => {
+                const { common, other } = timeZoneOptions(country);
+                const render = (o: { value: string; label: string }) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                );
+                return common.length ? (
+                  <>
+                    <optgroup label="Main cities">{common.map(render)}</optgroup>
+                    <optgroup label="Other zones">{other.map(render)}</optgroup>
+                  </>
+                ) : (
+                  other.map(render)
+                );
+              })()}
             </select>
           )}
         </Field>

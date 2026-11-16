@@ -79,3 +79,23 @@ describe("bookingSchema", () => {
     expect(fieldErrors(r.error!).destinationCountry).toMatch(/Sea freight/);
   });
 });
+
+describe("bookingSchema messages", () => {
+  it("asks for empty numbers instead of treating them as zero", () => {
+    const r = bookingSchema.safeParse({ ...booking, pieces: "", declaredValue: " " });
+    const errors = fieldErrors(r.error!);
+    expect(errors.pieces).toBe("Enter the number of boxes.");
+    expect(errors.declaredValue).toMatch(/what the goods are worth/);
+  });
+
+  it("words name errors naturally", () => {
+    const r = bookingSchema.safeParse({ ...booking, senderName: "", receiverName: "A" });
+    const errors = fieldErrors(r.error!);
+    expect(errors.senderName).toBe("Enter the sender's full name.");
+    expect(errors.receiverName).toMatch(/too short/);
+  });
+
+  it("still accepts 0 for documents", () => {
+    expect(bookingSchema.parse({ ...booking, declaredValue: "0" }).declaredValue).toBe(0);
+  });
+});

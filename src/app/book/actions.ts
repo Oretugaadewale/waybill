@@ -21,6 +21,7 @@ export async function submitBooking(
     message,
     errors,
     values,
+    savedAt: Date.now(),
     booking: null,
   });
 
@@ -94,6 +95,7 @@ export async function submitBooking(
     message: null,
     errors: {},
     values: {},
+    savedAt: Date.now(),
     booking: {
       reference,
       quote,

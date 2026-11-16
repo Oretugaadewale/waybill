@@ -1,5 +1,6 @@
 "use client";
 
+import { submitWithoutReset } from "@/components/form/submit-without-reset";
 import { useActionState, useState } from "react";
 import { initialFormState } from "@/lib/admin/form-state";
 import {
@@ -27,8 +28,12 @@ export function NewShipmentForm({ today }: { today: string }) {
   const sea = service === "Sea Freight";
 
   return (
-    <form action={formAction} noValidate className="flex flex-col gap-8">
-      <FormMessage ok={state.ok} message={state.message} />
+    <form
+      onSubmit={submitWithoutReset(formAction)}
+      noValidate
+      className="flex flex-col gap-8"
+    >
+      <FormMessage ok={state.ok} message={state.message} stamp={state.savedAt} />
 
       <Field
         id="service"

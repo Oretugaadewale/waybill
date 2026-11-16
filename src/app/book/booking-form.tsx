@@ -1,5 +1,6 @@
 "use client";
 
+import { submitWithoutReset } from "@/components/form/submit-without-reset";
 import Link from "next/link";
 import { useActionState, useState, type ReactNode } from "react";
 import { Field, FormMessage, SubmitButton, inputClass } from "@/components/form/fields";
@@ -9,6 +10,7 @@ import { QuoteSummary } from "@/components/quote/quote-summary";
 import { initialBookingState, type BookingState } from "@/lib/bookings/state";
 import { formatMoney } from "@/lib/pricing/quote";
 import { RATE_CARD } from "@/lib/pricing/rate-card";
+import { PayButton } from "../pay/[reference]/pay-button";
 import { submitBooking } from "./actions";
 
 const section = "rounded-sm border-2 border-ink bg-paper p-5 sm:p-6";
@@ -80,12 +82,12 @@ export function BookingForm({ initial, startedAt }: BookingFormProps) {
 
   return (
     <form
-      action={formAction}
+      onSubmit={submitWithoutReset(formAction)}
       noValidate
       className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]"
     >
       <div className="flex flex-col gap-8">
-        <FormMessage ok={state.ok} message={state.message} />
+        <FormMessage ok={state.ok} message={state.message} stamp={state.savedAt} />
 
         <section aria-labelledby="shipment-heading" className={section}>
           <h2 id="shipment-heading" className="mb-5 text-xl font-bold">
@@ -225,15 +227,19 @@ function Confirmation({ booking }: { booking: NonNullable<BookingState["booking"
               {booking.senderPhone} to arrange a time.
             </p>
           )}
-          <Link
-            href={`/pay/${booking.reference}`}
-            className="flex min-h-12 items-center justify-center rounded-sm bg-ink px-6 font-semibold text-paper hover:bg-ink/90"
-          >
-            Pay {formatMoney(booking.quote.totalMinor)} now
-          </Link>
+          <PayButton
+            reference={booking.reference}
+            label={`Pay ${formatMoney(booking.quote.totalMinor)} with Paystack`}
+          />
           <p className="text-sm text-ink-soft">
-            You can also pay later at /pay/{booking.reference}. Once it is paid and
-            checked in, you will get a tracking number to follow its journey.
+            Not ready to pay? You can pay later on{" "}
+            <Link
+              href={`/pay/${booking.reference}`}
+              className="font-medium text-ink underline underline-offset-4"
+            >
+              your booking page
+            </Link>
+            . Once your package is checked in, the same page shows your tracking number.
           </p>
         </div>
       </div>

@@ -13,7 +13,9 @@ describe("QuoteCalculator", () => {
     await userEvent.type(screen.getByLabelText(/Weight/), "2.2");
 
     // 2.5 kg x 18,500 + 2,500 handling + 7.5% VAT
-    expect(screen.getByText("₦52,406.25")).toBeInTheDocument();
+    expect(screen.getByText("Total to pay").parentElement).toHaveTextContent(
+      "₦52,406.25",
+    );
     const book = screen.getByRole("link", { name: "Book this shipment" });
     expect(book.getAttribute("href")).toContain("destinationCountry=GB");
     expect(book.getAttribute("href")).toContain("weightKg=2.2");

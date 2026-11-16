@@ -59,7 +59,7 @@ export const BOOKING_SELECT =
   "reference, status, service, origin_country, destination_country, destination_city, weight_kg, length_cm, width_cm, height_cm, pieces, contents, declared_value_minor, collection, pickup_address, sender_name, sender_phone, sender_email, receiver_name, receiver_phone, receiver_email, receiver_address, quote, total_minor, rate_card_version, decline_reason, created_at, shipments(tracking_number)";
 
 export const BOOKING_LIST_SELECT =
-  "reference, status, service, origin_country, destination_country, destination_city, weight_kg, sender_name, total_minor, created_at, shipments(tracking_number)";
+  "reference, status, service, origin_country, destination_country, destination_city, weight_kg, sender_name, total_minor, created_at, shipments(tracking_number), payments(refund_needed, refunded_at)";
 
 export const isBookingReference = (value: string) => /^BK-[A-HJ-NP-Z2-9]{6}$/.test(value);
 

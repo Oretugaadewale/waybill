@@ -107,3 +107,18 @@ describe("formatting", () => {
     expect(formatDate("2026-12-18")).toBe("18 Dec 2026");
   });
 });
+
+describe("lagosTimeHint", () => {
+  it("gives the Lagos time for scans in other zones", async () => {
+    const { lagosTimeHint } = await import("./tracking");
+    expect(lagosTimeHint("2026-11-16T09:09:00-05:00")).toBe("3:09 pm in Lagos");
+    expect(lagosTimeHint("2026-11-16T23:30:00-06:00")).toBe(
+      "6:30 am, 17 Nov 2026 in Lagos",
+    );
+  });
+
+  it("says nothing for scans already on Lagos time", async () => {
+    const { lagosTimeHint } = await import("./tracking");
+    expect(lagosTimeHint("2026-11-16T15:09:00+01:00")).toBeNull();
+  });
+});

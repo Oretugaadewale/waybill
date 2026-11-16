@@ -22,7 +22,9 @@ export async function GET(
 
   try {
     const outcome = await confirmPayment(paystackReference);
-    return back(outcome === "already_paid" ? "paid" : outcome);
+    return back(
+      outcome === "already_paid" || outcome === "refund_needed" ? "paid" : outcome,
+    );
   } catch (err) {
     console.error("[pay] callback verification failed", err);
     return back("pending");

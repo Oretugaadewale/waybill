@@ -21,7 +21,16 @@ import {
   NotAdmin,
   NotConnected,
 } from "../../_components/admin-shell";
-import { ConvertBookingForm, DeclineBookingForm } from "./booking-forms";
+import {
+  ConvertBookingForm,
+  DeclineBookingForm,
+  MarkRefundedButton,
+} from "./booking-forms";
+import {
+  loadBookingForPayment,
+  paymentsConfigured,
+  refreshOpenAttempt,
+} from "@/lib/payments/booking-payment";
 
 export const metadata: Metadata = {
   title: "Booking",
@@ -59,10 +68,16 @@ async function BookingContent({
   if (!data) notFound();
   const b = data as unknown as BookingRow;
 
+  // Paystack only reports successes, so ask it about an attempt still open.
+  if (paymentsConfigured()) {
+    const forPayment = await loadBookingForPayment(reference).catch(() => null);
+    if (forPayment) await refreshOpenAttempt(forPayment);
+  }
+
   const { data: paymentRows } = await access.supabase
     .from("payments")
     .select(
-      "paystack_reference, amount_minor, status, channel, paid_at, created_at, bookings!inner(reference)",
+      "paystack_reference, amount_minor, status, channel, paid_at, created_at, refund_needed, refunded_at, bookings!inner(reference)",
     )
     .eq("bookings.reference", reference)
     .order("created_at", { ascending: false });
@@ -73,6 +88,8 @@ async function BookingContent({
     channel: string | null;
     paid_at: string | null;
     created_at: string;
+    refund_needed: boolean;
+    refunded_at: string | null;
   }[];
 
   const origin = b.origin_country as OriginCountry;
@@ -230,6 +247,29 @@ async function BookingContent({
                       {formatLagosDateTime(p.paid_at ?? p.created_at)}.{" "}
                       <span className="font-mono text-xs">{p.paystack_reference}</span>
                     </span>
+                    {p.refund_needed ? (
+                      p.refunded_at ? (
+                        <span className="mt-1 block font-medium text-signal">
+                          Refunded {formatLagosDateTime(p.refunded_at)}.
+                        </span>
+                      ) : (
+                        <span className="mt-2 block rounded-sm border-2 border-red-700 p-3">
+                          <span className="block font-semibold text-red-700">
+                            Refund needed: {formatMoney(p.amount_minor)}
+                          </span>
+                          <span className="mt-1 block text-ink-soft">
+                            {b.status === "converted"
+                              ? "The shipment was cancelled after payment."
+                              : "This money arrived when the booking was no longer waiting for payment."}{" "}
+                            Refund it in Paystack, then mark it here.
+                          </span>
+                          <MarkRefundedButton
+                            reference={b.reference}
+                            paystackReference={p.paystack_reference}
+                          />
+                        </span>
+                      )
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -266,8 +306,8 @@ async function BookingContent({
 const PAYMENT_LABELS = {
   initialized: "Started, not finished",
   success: "Paid",
-  failed: "Failed",
-  abandoned: "Abandoned",
+  failed: "Card declined",
+  abandoned: "Not finished",
 } as const;
 
 function Panel({ title, children }: { title: string; children: ReactNode }) {

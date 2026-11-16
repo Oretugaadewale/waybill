@@ -119,7 +119,9 @@ sequenceDiagram
 - **The webhook checks Paystack's signature** (an HMAC-SHA512 of the raw body) before doing anything. It then verifies with the API anyway, so a payment counts even if the customer closes the tab before coming back.
 - **Recording is idempotent.** The redirect and the webhook usually both arrive, and the second one changes nothing.
 - **The server key.** The app reaches the database with the public key, so the payment functions also demand a server key that only Vercel holds. The database keeps just its SHA-256 hash, in a schema the Data API cannot reach. Without it, nobody can read a customer's email or mark a booking as paid.
-- [`supabase/tests/payments.sql`](supabase/tests/payments.sql) checks these rules against a live database and undoes every change.
+- **Refunds are tracked, not lost.** If money arrives for a booking that no longer wants it (declined, already paid, or a checkout tab left open) or a paid shipment is cancelled, the payment is kept and flagged **Refund needed** in the dashboard until staff mark it refunded.
+- **Declined cards are reported.** Paystack only notifies on success, so when a booking page loads with an attempt still open, Waybill asks Paystack what happened and tells the customer their card was declined.
+- [`supabase/tests/payments.sql`](supabase/tests/payments.sql) and [`supabase/tests/refunds.sql`](supabase/tests/refunds.sql) check these rules against a live database and undo every change.
 
 ## What Stage 4 adds
 

@@ -73,3 +73,33 @@ describe("wallTimeToInstant", () => {
     expect(() => wallTimeToInstant("14/11/2026 09:30", "Africa/Lagos")).toThrow();
   });
 });
+
+describe("timeZoneOptions", () => {
+  it("puts the common US zones first, with plain names", async () => {
+    const { timeZoneOptions } = await import("./places");
+    const { common, other } = timeZoneOptions("US");
+    expect(common[0]).toEqual({
+      value: "America/New_York",
+      label: "Eastern: New York, Atlanta, Miami",
+    });
+    expect(common.map((o) => o.label)).toContain("Central: Chicago, Houston, Dallas");
+    expect(other.some((o) => o.value === "America/Chicago")).toBe(false);
+    expect(other.length).toBeGreaterThan(10);
+  });
+
+  it("starts Canada with Toronto", async () => {
+    const { timeZoneOptions } = await import("./places");
+    expect(timeZoneOptions("CA").common[0].value).toBe("America/Toronto");
+  });
+});
+
+describe("countryCodeFromLocation", () => {
+  it("reads the country at the end of a scan location", async () => {
+    const { countryCodeFromLocation } = await import("./places");
+    expect(countryCodeFromLocation("Heathrow Airport, London, United Kingdom")).toBe(
+      "GB",
+    );
+    expect(countryCodeFromLocation("Ojota office, Lagos, Nigeria")).toBe("NG");
+    expect(countryCodeFromLocation("Somewhere")).toBeNull();
+  });
+});

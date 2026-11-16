@@ -7,9 +7,12 @@ import { WaybillCard } from "@/components/waybill-card";
 import { getAdminAccess } from "@/lib/admin/session";
 import {
   ADMIN_DETAIL_SELECT,
+  priceChangeSincePayment,
   toAdminDetail,
   type AdminShipmentDetailRow,
 } from "@/lib/admin/shipment-detail";
+import { countryCodeFromLocation } from "@/lib/places";
+import { formatMoney } from "@/lib/pricing/quote";
 import { allowedNextStages } from "@/lib/shipments/rules";
 import {
   STAGE_LABELS,
@@ -68,9 +71,9 @@ async function ShipmentContent({
   if (error) throw new Error(`Could not load shipment: ${error.message}`);
   if (!data) notFound();
 
-  const { shipment, cancelReason, latestEventId } = toAdminDetail(
-    data as unknown as AdminShipmentDetailRow,
-  );
+  const detail = toAdminDetail(data as unknown as AdminShipmentDetailRow);
+  const { shipment, cancelReason, latestEventId } = detail;
+  const priceChange = priceChangeSincePayment(detail);
   const latest = shipment.events.at(-1);
   const cancelled = Boolean(shipment.cancelledAt);
   const delivered = currentStage(shipment) === "delivered";
@@ -95,7 +98,7 @@ async function ShipmentContent({
       {created ? (
         <p
           role="status"
-          className="mb-8 rounded-sm bg-signal-soft px-4 py-3 font-medium text-signal"
+          className="flash-out mb-8 rounded-sm bg-signal-soft px-4 py-3 font-medium text-signal"
         >
           Shipment created. Give the customer tracking number{" "}
           <span className="font-mono">{shipment.trackingNumber}</span>.
@@ -145,15 +148,43 @@ async function ShipmentContent({
                 trackingNumber={shipment.trackingNumber}
                 stages={nextStages}
                 defaultCountry={
-                  latest && stageAtOrAfterCustoms(latest.stage)
+                  (latest && countryCodeFromLocation(latest.location)) ??
+                  (latest && stageAtOrAfterCustoms(latest.stage)
                     ? shipment.destination.country
-                    : shipment.origin.country
+                    : shipment.origin.country)
                 }
               />
             </Panel>
           )}
 
-          {!cancelled ? (
+          {detail.booking ? (
+            <Panel title="Booking">
+              <p>
+                Booked online as{" "}
+                <Link
+                  href={`/admin/bookings/${detail.booking.reference}`}
+                  className="font-mono font-semibold underline underline-offset-4"
+                >
+                  {detail.booking.reference}
+                </Link>
+                .
+              </p>
+              {priceChange ? (
+                <p
+                  role="alert"
+                  className="mt-3 rounded-sm border-2 border-red-700 px-4 py-3 text-sm font-medium text-red-700"
+                >
+                  The weight changed from {priceChange.bookedKg} kg to {priceChange.nowKg}{" "}
+                  kg after the customer paid {formatMoney(priceChange.paidMinor)}. At{" "}
+                  {priceChange.nowKg} kg the price is {formatMoney(priceChange.nowMinor)}{" "}
+                  ({priceChange.nowMinor > priceChange.paidMinor ? "collect" : "refund"}{" "}
+                  {formatMoney(Math.abs(priceChange.nowMinor - priceChange.paidMinor))}).
+                </p>
+              ) : null}
+            </Panel>
+          ) : null}
+
+          {!cancelled && !delivered ? (
             <Panel
               title="Edit details"
               description="The route and service are fixed once booked."

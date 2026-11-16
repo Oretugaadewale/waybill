@@ -1,3 +1,4 @@
+import { calculateQuote } from "@/lib/pricing/quote";
 import { recordToShipment } from "@/lib/shipments/mapping";
 import type { ServiceLevel, Shipment, ShipmentStage } from "@/lib/shipments/types";
 
@@ -19,6 +20,18 @@ export interface AdminShipmentDetailRow {
   cancelled_at: string | null;
   cancel_reason: string | null;
   created_at: string;
+  bookings: {
+    reference: string;
+    service: ServiceLevel;
+    origin_country: string;
+    destination_country: string;
+    weight_kg: number | string;
+    length_cm: number | string | null;
+    width_cm: number | string | null;
+    height_cm: number | string | null;
+    collection: "drop_off" | "pickup";
+    total_minor: number;
+  }[];
   tracking_events: {
     id: string;
     stage: ShipmentStage;
@@ -31,12 +44,13 @@ export interface AdminShipmentDetailRow {
 }
 
 export const ADMIN_DETAIL_SELECT =
-  "tracking_number, origin_city, origin_country, origin_hub, destination_city, destination_country, destination_hub, service, carrier, weight_kg, pieces, contents, estimated_delivery, cancelled_at, cancel_reason, created_at, tracking_events(id, stage, occurred_at, local_offset_minutes, location, note, created_at)";
+  "tracking_number, origin_city, origin_country, origin_hub, destination_city, destination_country, destination_hub, service, carrier, weight_kg, pieces, contents, estimated_delivery, cancelled_at, cancel_reason, created_at, tracking_events(id, stage, occurred_at, local_offset_minutes, location, note, created_at), bookings(reference, service, origin_country, destination_country, weight_kg, length_cm, width_cm, height_cm, collection, total_minor)";
 
 export interface AdminShipmentDetail {
   shipment: Shipment;
   cancelReason: string | null;
   latestEventId: string | null;
+  booking: AdminShipmentDetailRow["bookings"][number] | null;
 }
 
 export function toAdminDetail(row: AdminShipmentDetailRow): AdminShipmentDetail {
@@ -74,5 +88,47 @@ export function toAdminDetail(row: AdminShipmentDetailRow): AdminShipmentDetail 
     shipment,
     cancelReason: row.cancel_reason,
     latestEventId: events.at(-1)?.id ?? null,
+    booking: row.bookings?.[0] ?? null,
+  };
+}
+
+/**
+ * If staff changed the weight after the customer paid, what the rate card
+ * says the shipment should cost now, so the difference can be collected
+ * or refunded. Null when nothing changed.
+ */
+export function priceChangeSincePayment(detail: AdminShipmentDetail): {
+  bookedKg: number;
+  nowKg: number;
+  paidMinor: number;
+  nowMinor: number;
+} | null {
+  const b = detail.booking;
+  if (!b) return null;
+  const bookedKg = Number(b.weight_kg);
+  const nowKg = detail.shipment.weightKg;
+  if (bookedKg === nowKg) return null;
+  const dims =
+    b.length_cm !== null && b.width_cm !== null && b.height_cm !== null
+      ? {
+          length: Number(b.length_cm),
+          width: Number(b.width_cm),
+          height: Number(b.height_cm),
+        }
+      : null;
+  const priced = calculateQuote({
+    service: b.service,
+    originCountry: b.origin_country,
+    destinationCountry: b.destination_country,
+    weightKg: nowKg,
+    dimensionsCm: dims,
+    collection: b.collection,
+  });
+  if (!priced.ok || priced.quote.totalMinor === Number(b.total_minor)) return null;
+  return {
+    bookedKg,
+    nowKg,
+    paidMinor: Number(b.total_minor),
+    nowMinor: priced.quote.totalMinor,
   };
 }

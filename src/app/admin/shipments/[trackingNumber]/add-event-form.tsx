@@ -1,5 +1,6 @@
 "use client";
 
+import { submitWithoutReset } from "@/components/form/submit-without-reset";
 import { useActionState, useState } from "react";
 import { initialFormState } from "@/lib/admin/form-state";
 import { DEFAULT_NOTES } from "@/lib/shipments/rules";
@@ -34,12 +35,12 @@ export function AddEventForm({
     // A new key after each save gives a fresh, empty form.
     <form
       key={state.savedAt}
-      action={formAction}
+      onSubmit={submitWithoutReset(formAction)}
       noValidate
       className="grid gap-5 sm:grid-cols-2"
     >
       <div className="sm:col-span-2">
-        <FormMessage ok={state.ok} message={state.message} />
+        <FormMessage ok={state.ok} message={state.message} stamp={state.savedAt} />
       </div>
 
       <Field id="stage" label="Stage" error={e.stage} className="sm:col-span-2">

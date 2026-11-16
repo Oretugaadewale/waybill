@@ -42,7 +42,10 @@ export function WaybillCard({ shipment, headingLevel = "h1" }: WaybillCardProps)
 
       <div className="border-t-2 border-ink px-5 py-6 sm:px-8">
         <h2 className="sr-only">Progress</h2>
-        <ProgressSteps steps={progressSteps(shipment)} />
+        <ProgressSteps
+          steps={progressSteps(shipment)}
+          cancelled={Boolean(shipment.cancelledAt)}
+        />
       </div>
 
       <div className="border-t-2 border-ink px-5 py-6 sm:px-8">

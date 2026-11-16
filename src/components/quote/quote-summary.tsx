@@ -1,4 +1,5 @@
-import { formatMoney, type Quote } from "@/lib/pricing/quote";
+import { Money } from "@/components/money";
+import type { Quote } from "@/lib/pricing/quote";
 
 /** The price breakdown, laid out like the charges box on a waybill. */
 export function QuoteSummary({ quote }: { quote: Quote }) {
@@ -8,7 +9,7 @@ export function QuoteSummary({ quote }: { quote: Quote }) {
       <div className="border-b-2 border-ink px-5 py-4">
         <p className="text-sm text-ink-soft">Total to pay</p>
         <p className="font-mono text-4xl font-semibold tracking-tight">
-          {formatMoney(quote.totalMinor)}
+          <Money minor={quote.totalMinor} />
         </p>
         <p className="mt-1 text-sm text-ink-soft">
           Arrives in about {min} to {max} working days. Zone: {quote.zoneLabel}.
@@ -30,12 +31,16 @@ export function QuoteSummary({ quote }: { quote: Quote }) {
         {quote.lines.map((line) => (
           <div key={line.label} className="flex justify-between gap-4 py-3">
             <dt>{line.label}</dt>
-            <dd className="font-mono tabular-nums">{formatMoney(line.amountMinor)}</dd>
+            <dd className="font-mono tabular-nums">
+              <Money minor={line.amountMinor} />
+            </dd>
           </div>
         ))}
         <div className="flex justify-between gap-4 py-3">
           <dt>VAT (7.5%)</dt>
-          <dd className="font-mono tabular-nums">{formatMoney(quote.vatMinor)}</dd>
+          <dd className="font-mono tabular-nums">
+            <Money minor={quote.vatMinor} />
+          </dd>
         </div>
       </dl>
     </div>

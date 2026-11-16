@@ -37,27 +37,7 @@ export function Field({ id, label, error, hint, children, className }: FieldProp
   );
 }
 
-export function FormMessage({
-  ok,
-  message,
-}: {
-  ok: boolean | null;
-  message: string | null;
-}) {
-  if (!message) return null;
-  return (
-    <p
-      role={ok ? "status" : "alert"}
-      className={
-        ok
-          ? "rounded-sm bg-signal-soft px-4 py-3 font-medium text-signal"
-          : "rounded-sm border-2 border-red-700 bg-paper px-4 py-3 font-medium text-red-700"
-      }
-    >
-      {message}
-    </p>
-  );
-}
+export { FormMessage } from "./form-message";
 
 export function SubmitButton({
   pending,

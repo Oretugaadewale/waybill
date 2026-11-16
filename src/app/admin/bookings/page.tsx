@@ -11,7 +11,7 @@ import {
   type BookingStatus,
 } from "@/lib/bookings/admin";
 import { countryName } from "@/lib/places";
-import { formatMoney } from "@/lib/pricing/quote";
+import { Money } from "@/components/money";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import {
   AdminLoading,
@@ -38,6 +38,7 @@ interface BookingListRow {
   total_minor: number;
   created_at: string;
   shipments: { tracking_number: string } | null;
+  payments: { refund_needed: boolean; refunded_at: string | null }[];
 }
 
 export default function BookingsPage({ searchParams }: PageProps<"/admin/bookings">) {
@@ -147,6 +148,11 @@ async function BookingsContent({
                   </td>
                   <td className="px-4 py-3">
                     {BOOKING_STATUS_LABELS[b.status]}
+                    {b.payments?.some((p) => p.refund_needed && !p.refunded_at) ? (
+                      <span className="mt-1 block w-fit rounded-sm bg-red-700 px-2 py-0.5 text-xs font-semibold text-paper">
+                        Refund needed
+                      </span>
+                    ) : null}
                     {b.shipments ? (
                       <span className="block font-mono text-xs">
                         {b.shipments.tracking_number}
@@ -154,7 +160,7 @@ async function BookingsContent({
                     ) : null}
                   </td>
                   <td className="px-4 py-3 text-right font-mono tabular-nums">
-                    {formatMoney(b.total_minor)}
+                    <Money minor={b.total_minor} />
                   </td>
                 </tr>
               ))}
