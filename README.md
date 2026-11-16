@@ -2,16 +2,21 @@
 
 Shipment tracking and payments for cross-border logistics between Nigeria, the US, the UK and Canada.
 
-I built Waybill as a portfolio project, drawing on how we run operations at eShopAfrica, an international logistics company in Lagos. Customers there ask one question more than any other: _where is my package?_ Waybill answers it, and over the next stages it grows into the full flow: booking, quoting, admin tools and paying with Paystack.
+I built Waybill as a portfolio project, drawing on how we run operations at eShopAfrica, an international logistics company in Lagos. Customers there ask one question more than any other: _where is my package?_ Waybill answers it, and covers the flow around it: quoting, booking, paying with Paystack and the admin tools staff use to move a parcel along.
 
 **Live demo:** [waybill-dusky.vercel.app](https://waybill-dusky.vercel.app)
-**Status:** Stage 5 of 6 complete. Customers price, book and pay online with Paystack (test mode); staff turn paid bookings into tracked shipments. All data and prices are invented.
+**Status:** Complete. Customers price, book and pay online with Paystack (test mode); staff turn paid bookings into tracked shipments. Prices are demo rates.
+**Why it is built this way:** [the decisions behind Waybill](docs/DECISIONS.md)
 
 ![Tracking page on desktop](docs/screenshots/desktop-tracking.png)
 
+| Quote calculator                                        | Tracking on a phone                                          | Booking price on a phone                                               |
+| ------------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| ![Quote calculator](docs/screenshots/desktop-quote.png) | ![Tracking on a phone](docs/screenshots/mobile-tracking.png) | ![Booking price on a phone](docs/screenshots/mobile-booking-price.png) |
+
 ## Try it
 
-Run the project without a database and these sample tracking numbers work, each at a different stage of its journey. The live demo uses only real bookings, so to see tracking there, book a shipment and pay with a Paystack test card.
+On the live demo, track `WB-6296-UK` (a delivered test shipment), or book one yourself and pay on Paystack's test checkout. Run the project without a database and these sample tracking numbers work instead, each at a different stage of its journey.
 
 | Tracking number | Route               | Stage            |
 | --------------- | ------------------- | ---------------- |
@@ -83,6 +88,55 @@ erDiagram
 
 Admins are added with SQL only, so there is no API an attacker could use to make themselves one. `is_admin()` and `get_shipment()` are `security definer` functions with a locked `search_path`, and tables are not exposed to the Data API unless a grant says so.
 
+## What Stage 3 adds
+
+- **An admin dashboard** at `/admin`: every shipment, with search by tracking number, city or hub code, and a filter by status.
+- **Create a shipment** at `/admin/shipments/new`. Waybill generates the tracking number (it ends in the destination country, like `WB-4821-NG`) and posts the first Booked scan in the same database transaction.
+- **A page per shipment** to post tracking updates, edit the package details, remove a scan posted by mistake, or cancel the shipment.
+- **Instant public updates.** Each change calls `updateTag` for that shipment, so the cached tracking page is fresh on the next visit.
+- **Real routes.** Air ships from Nigeria or China to any of 240+ countries; sea freight runs from Nigeria to the United States, Canada and the United Kingdom. The forms only offer valid choices, and the server checks again.
+- **Local time everywhere.** The admin picks the place of a scan; countries with several time zones (the US, Canada, China...) ask which one. The scan is stored as UTC plus that place's offset on that date, daylight saving included.
+
+### Rules the database enforces
+
+The rules live in Postgres triggers, not just the forms, so they hold for every client: the dashboard, the SQL editor or a script.
+
+| Rule                                                                    | Why                                                                        |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Stages only move forward; in transit and at customs may repeat          | A parcel can pass several hubs, but never goes from customs back to pickup |
+| Scans are in time order and not in the future                           | The timeline a customer reads must make sense                              |
+| Delivered and cancelled shipments take no new scans                     | Their story is finished                                                    |
+| Scans cannot be edited; only the latest can be removed, never the first | Mistakes are undone without rewriting history                              |
+| The route, service and tracking number are fixed after booking          | Customers may already have the number                                      |
+| Shipments are cancelled, never deleted                                  | There is always a record                                                   |
+
+Rule violations raise a plain-English message with SQLSTATE `P0001`, which the dashboard shows as it is. [`supabase/tests/rules.sql`](supabase/tests/rules.sql) checks all of them against a live database and undoes every change.
+
+## What Stage 4 adds
+
+- **A quote calculator** at `/quote`. Pick the service, where it ships from and to, the weight and, optionally, the box size. The price and its breakdown update as you type.
+- **A booking form** at `/book`, prefilled from the quote. It collects the sender, receiver and package details and returns a booking reference.
+- **Bookings in the admin dashboard.** Staff review each booking, then create the shipment from it in one step (tracking number and first scan included) or decline it with a reason.
+
+### How prices work
+
+| Rule                          | Detail                                                                                                                                                                                   |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Per kilo, everything in naira | Air and sea alike, so Paystack can charge every booking (Stage 5)                                                                                                                        |
+| Zones                         | UK and Ireland, Europe, US and Canada, Africa, Asia, rest of world. Each country's zone comes from its main time zone region, so all 240+ countries are covered without a hand-kept list |
+| Chargeable weight             | The bigger of the real weight and the box size (cm³ / 5,000 for air, / 6,000 for sea), rounded up to the next half kilo. Minimum 1 kg by air, 10 kg by sea                               |
+| Getting it to us              | Free drop-off at the Lagos office in Ojota (or the Guangzhou warehouse), or pickup for a fee                                                                                             |
+| Extras                        | Handling fee, then 7.5% VAT on the total                                                                                                                                                 |
+
+The rate card lives in [`src/lib/pricing/rate-card.ts`](src/lib/pricing/rate-card.ts) and its numbers are made up for this demo. `calculateQuote()` is a pure function: the browser runs it to show the price live, and the server runs it again before saving. The server never takes a price from the browser, and the admin page recomputes every booking and flags any that do not match.
+
+### Keeping bookings safe
+
+- The public creates bookings only through `submit_booking()`, a database function that checks every field and allows at most five bookings an hour per email address.
+- Bookings hold names, phone numbers and addresses, so only admins can read them. Admins can move a booking on but cannot rewrite what the customer sent.
+- The form has a hidden honeypot field and rejects submissions sent back faster than a person could fill it in.
+- [`supabase/tests/bookings.sql`](supabase/tests/bookings.sql) checks these rules against a live database and undoes every change.
+
 ## What Stage 5 adds
 
 - **Pay online with Paystack.** After booking, the customer pays on Paystack's checkout by card, bank transfer or USSD. The demo runs in Paystack **test mode**, so only test cards work and no real money moves.
@@ -123,55 +177,6 @@ sequenceDiagram
 - **Declined cards are reported.** Paystack only notifies on success, so when a booking page loads with an attempt still open, Waybill asks Paystack what happened and tells the customer their card was declined.
 - [`supabase/tests/payments.sql`](supabase/tests/payments.sql) and [`supabase/tests/refunds.sql`](supabase/tests/refunds.sql) check these rules against a live database and undo every change.
 
-## What Stage 4 adds
-
-- **A quote calculator** at `/quote`. Pick the service, where it ships from and to, the weight and, optionally, the box size. The price and its breakdown update as you type.
-- **A booking form** at `/book`, prefilled from the quote. It collects the sender, receiver and package details and returns a booking reference.
-- **Bookings in the admin dashboard.** Staff review each booking, then create the shipment from it in one step (tracking number and first scan included) or decline it with a reason.
-
-### How prices work
-
-| Rule                          | Detail                                                                                                                                                                                   |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Per kilo, everything in naira | Air and sea alike, so Paystack can charge every booking (Stage 5)                                                                                                                        |
-| Zones                         | UK and Ireland, Europe, US and Canada, Africa, Asia, rest of world. Each country's zone comes from its main time zone region, so all 240+ countries are covered without a hand-kept list |
-| Chargeable weight             | The bigger of the real weight and the box size (cm³ / 5,000 for air, / 6,000 for sea), rounded up to the next half kilo. Minimum 1 kg by air, 10 kg by sea                               |
-| Getting it to us              | Free drop-off at the Lagos office in Ojota (or the Guangzhou warehouse), or pickup for a fee                                                                                             |
-| Extras                        | Handling fee, then 7.5% VAT on the total                                                                                                                                                 |
-
-The rate card lives in [`src/lib/pricing/rate-card.ts`](src/lib/pricing/rate-card.ts) and its numbers are made up for this demo. `calculateQuote()` is a pure function: the browser runs it to show the price live, and the server runs it again before saving. The server never takes a price from the browser, and the admin page recomputes every booking and flags any that do not match.
-
-### Keeping bookings safe
-
-- The public creates bookings only through `submit_booking()`, a database function that checks every field and allows at most five bookings an hour per email address.
-- Bookings hold names, phone numbers and addresses, so only admins can read them. Admins can move a booking on but cannot rewrite what the customer sent.
-- The form has a hidden honeypot field and rejects submissions sent back faster than a person could fill it in.
-- [`supabase/tests/bookings.sql`](supabase/tests/bookings.sql) checks these rules against a live database and undoes every change.
-
-## What Stage 3 adds
-
-- **An admin dashboard** at `/admin`: every shipment, with search by tracking number, city or hub code, and a filter by status.
-- **Create a shipment** at `/admin/shipments/new`. Waybill generates the tracking number (it ends in the destination country, like `WB-4821-NG`) and posts the first Booked scan in the same database transaction.
-- **A page per shipment** to post tracking updates, edit the package details, remove a scan posted by mistake, or cancel the shipment.
-- **Instant public updates.** Each change calls `updateTag` for that shipment, so the cached tracking page is fresh on the next visit.
-- **Real routes.** Air ships from Nigeria or China to any of 240+ countries; sea freight runs from Nigeria to the United States, Canada and the United Kingdom. The forms only offer valid choices, and the server checks again.
-- **Local time everywhere.** The admin picks the place of a scan; countries with several time zones (the US, Canada, China...) ask which one. The scan is stored as UTC plus that place's offset on that date, daylight saving included.
-
-### Rules the database enforces
-
-The rules live in Postgres triggers, not just the forms, so they hold for every client: the dashboard, the SQL editor or a script.
-
-| Rule                                                                    | Why                                                                        |
-| ----------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Stages only move forward; in transit and at customs may repeat          | A parcel can pass several hubs, but never goes from customs back to pickup |
-| Scans are in time order and not in the future                           | The timeline a customer reads must make sense                              |
-| Delivered and cancelled shipments take no new scans                     | Their story is finished                                                    |
-| Scans cannot be edited; only the latest can be removed, never the first | Mistakes are undone without rewriting history                              |
-| The route, service and tracking number are fixed after booking          | Customers may already have the number                                      |
-| Shipments are cancelled, never deleted                                  | There is always a record                                                   |
-
-Rule violations raise a plain-English message with SQLSTATE `P0001`, which the dashboard shows as it is. [`supabase/tests/rules.sql`](supabase/tests/rules.sql) checks all of them against a live database and undoes every change.
-
 ## Tech stack
 
 | Area      | Choice                                                       |
@@ -180,7 +185,8 @@ Rule violations raise a plain-English message with SQLSTATE `P0001`, which the d
 | Database  | Supabase: PostgreSQL, Row Level Security, Auth               |
 | Language  | TypeScript, strict mode                                      |
 | Styling   | Tailwind CSS 4, self-hosted IBM Plex fonts                   |
-| Testing   | Vitest and React Testing Library                             |
+| Payments  | Paystack (test mode): hosted checkout, verification, webhook |
+| Testing   | Vitest, React Testing Library, Playwright, SQL rule checks   |
 | Quality   | ESLint, Prettier, GitHub Actions CI                          |
 | Hosting   | Vercel                                                       |
 
@@ -263,6 +269,9 @@ src/
   lib/supabase/           Supabase clients for the signed-in user and the public
   fonts/                  Self-hosted IBM Plex Sans and Mono
   proxy.ts                Refreshes the session and guards /admin
+e2e/
+  sample/                 Browser tests on the sample data, run on every push
+  live/                   Read-only checks on the deployed site, plus the opt-in full journey
 supabase/
   migrations/             Schema, grants, Row Level Security and the tracking rules
   tests/                  SQL checks for the tracking, booking and payment rules
@@ -273,18 +282,18 @@ The tracking logic, route rules and time zone handling are plain TypeScript with
 
 ## Roadmap
 
-| Stage | Scope                                                              | Status                      |
-| ----- | ------------------------------------------------------------------ | --------------------------- |
-| 1     | Project setup and public tracking page                             | Done                        |
-| 2     | Supabase database, Row Level Security and admin login              | Done                        |
-| 3     | Admin dashboard to create shipments and post tracking updates      | Done                        |
-| 4     | Booking form and a quote calculator by weight, route and service   | Done                        |
-| 5     | Paystack test payments with server-side verification and a webhook | Done                        |
-| 6     | End-to-end tests, final deploy and a write-up of the decisions     | Partly done: tests in place |
+| Stage | Scope                                                              | Status |
+| ----- | ------------------------------------------------------------------ | ------ |
+| 1     | Project setup and public tracking page                             | Done   |
+| 2     | Supabase database, Row Level Security and admin login              | Done   |
+| 3     | Admin dashboard to create shipments and post tracking updates      | Done   |
+| 4     | Booking form and a quote calculator by weight, route and service   | Done   |
+| 5     | Paystack test payments with server-side verification and a webhook | Done   |
+| 6     | End-to-end tests, final deploy and a write-up of the decisions     | Done   |
 
 ## About
 
-Built by [Adewale Oretuga](https://adewale-oretuga.netlify.app), a frontend engineer in Lagos working with React, Next.js and TypeScript. All shipments, names and tracking numbers in this project are invented.
+Built by [Adewale Oretuga](https://adewale-oretuga.netlify.app), a frontend engineer in Lagos working with React, Next.js and TypeScript. The sample shipments and all prices are invented, and the live demo takes only Paystack test payments.
 
 ## Licence
 
