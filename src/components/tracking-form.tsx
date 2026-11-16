@@ -41,7 +41,7 @@ export function TrackingForm({ defaultValue = "" }: TrackingFormProps) {
         Tracking number
       </label>
       <p id={hintId} className="mt-1 text-sm text-ink-soft">
-        Printed on your receipt, for example WB-1042-US.
+        Printed on your receipt, for example WB-4821-NG.
       </p>
       <div className="mt-3 flex flex-col gap-3 sm:flex-row">
         <input
