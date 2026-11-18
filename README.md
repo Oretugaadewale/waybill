@@ -1,5 +1,8 @@
 # Waybill
 
+How I built this section. Built with Claude as an AI pair programmer. I set the product requirements from my logistics work, chose the trade-offs, tested every flow by hand, and found and directed the fixes for bugs such as the Paystack Close button and the hydration error.
+
+
 Shipment tracking and payments for cross-border logistics between Nigeria, the US, the UK and Canada.
 
 I built Waybill as a portfolio project, drawing on how we run operations at eShopAfrica, an international logistics company in Lagos. Customers there ask one question more than any other: _where is my package?_ Waybill answers it, and over the next stages it grows into the full flow: booking, quoting, admin tools and paying with Paystack.
