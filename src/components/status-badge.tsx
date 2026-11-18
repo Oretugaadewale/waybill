@@ -1,23 +1,26 @@
 import type { ShipmentStage } from "@/lib/shipments/types";
 import { STAGE_LABELS } from "@/lib/shipments/tracking";
 
-export function StatusBadge({ stage }: { stage: ShipmentStage }) {
-  const delivered = stage === "delivered";
+interface StatusBadgeProps {
+  stage: ShipmentStage;
+  cancelled?: boolean;
+}
+
+const STYLES = {
+  active: { badge: "bg-tape text-ink", dot: "bg-ink" },
+  delivered: { badge: "bg-signal-soft text-signal", dot: "bg-signal" },
+  cancelled: { badge: "border border-ink bg-concrete text-ink", dot: "bg-ink-soft" },
+} as const;
+
+export function StatusBadge({ stage, cancelled = false }: StatusBadgeProps) {
+  const tone = cancelled ? "cancelled" : stage === "delivered" ? "delivered" : "active";
+  const style = STYLES[tone];
   return (
     <span
-      className={
-        delivered
-          ? "inline-flex items-center gap-2 rounded-sm bg-signal-soft px-3 py-1 text-sm font-semibold text-signal"
-          : "inline-flex items-center gap-2 rounded-sm bg-tape px-3 py-1 text-sm font-semibold text-ink"
-      }
+      className={`inline-flex items-center gap-2 rounded-sm px-3 py-1 text-sm font-semibold ${style.badge}`}
     >
-      <span
-        aria-hidden="true"
-        className={
-          delivered ? "h-2 w-2 rounded-full bg-signal" : "h-2 w-2 rounded-full bg-ink"
-        }
-      />
-      {STAGE_LABELS[stage]}
+      <span aria-hidden="true" className={`h-2 w-2 rounded-full ${style.dot}`} />
+      {cancelled ? "Cancelled" : STAGE_LABELS[stage]}
     </span>
   );
 }

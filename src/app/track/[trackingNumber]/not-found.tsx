@@ -1,5 +1,6 @@
 import { SampleList } from "@/components/sample-list";
 import { TrackingForm } from "@/components/tracking-form";
+import { getSupabaseEnv } from "@/lib/supabase/env";
 
 export default function ShipmentNotFound() {
   return (
@@ -9,17 +10,19 @@ export default function ShipmentNotFound() {
       </h1>
       <p className="mt-3 text-lg text-ink-soft">
         Check the number on your receipt and try again. Tracking numbers have a WB prefix,
-        four digits and a country code, like WB-1042-US.
+        four digits and a country code, like WB-4821-NG.
       </p>
       <div className="mt-8">
         <TrackingForm />
       </div>
-      <div className="mt-10">
-        <h2 className="text-base font-semibold">Sample tracking numbers</h2>
-        <div className="mt-3">
-          <SampleList />
+      {getSupabaseEnv() ? null : (
+        <div className="mt-10">
+          <h2 className="text-base font-semibold">Sample tracking numbers</h2>
+          <div className="mt-3">
+            <SampleList />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

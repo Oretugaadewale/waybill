@@ -1,5 +1,5 @@
 import type { TrackingEvent } from "@/lib/shipments/types";
-import { STAGE_LABELS, formatEventTime } from "@/lib/shipments/tracking";
+import { STAGE_LABELS, formatEventTime, lagosTimeHint } from "@/lib/shipments/tracking";
 
 /** Every scan on the journey, newest first. */
 export function Timeline({ events }: { events: TrackingEvent[] }) {
@@ -7,10 +7,11 @@ export function Timeline({ events }: { events: TrackingEvent[] }) {
     <ol className="relative">
       {events.map((event, i) => {
         const { date, time } = formatEventTime(event.at);
+        const lagos = lagosTimeHint(event.at);
         const latest = i === 0;
         return (
           <li
-            key={event.at}
+            key={`${event.at}-${i}`}
             className="relative grid grid-cols-[1.25rem_1fr] gap-x-4 pb-6 last:pb-0"
           >
             <span aria-hidden="true" className="relative flex justify-center">
@@ -35,6 +36,7 @@ export function Timeline({ events }: { events: TrackingEvent[] }) {
                   {date}, {time}
                 </time>{" "}
                 local time, {event.location}
+                {lagos ? <span className="block text-xs">({lagos})</span> : null}
               </p>
             </div>
           </li>

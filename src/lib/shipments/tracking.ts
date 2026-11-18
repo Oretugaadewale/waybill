@@ -127,13 +127,28 @@ export function formatDate(isoDate: string): string {
   return `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]} ${m[1]}`;
 }
 
-const COUNTRY_NAMES: Record<string, string> = {
-  NG: "Nigeria",
-  US: "United States",
-  GB: "United Kingdom",
-  CA: "Canada",
-};
+export { countryName } from "@/lib/country-name";
 
-export function countryName(code: string): string {
-  return COUNTRY_NAMES[code] ?? code;
+/**
+ * For a scan made in another time zone, the same moment in Lagos time, so a
+ * customer can see the order of scans across zones ("9:09 am local" in
+ * Toronto came after "3:09 pm" in Lagos). Null for scans already on Lagos time.
+ */
+export function lagosTimeHint(iso: string): string | null {
+  if (/\+01:00$/.test(iso)) return null;
+  const instant = new Date(iso);
+  if (Number.isNaN(instant.getTime())) return null;
+  const lagos = toLocalIsoInLagos(instant);
+  const local = formatEventTime(iso);
+  const there = formatEventTime(lagos);
+  return there.date === local.date
+    ? `${there.time} in Lagos`
+    : `${there.time}, ${there.date} in Lagos`;
+}
+
+function toLocalIsoInLagos(instant: Date): string {
+  // Lagos is UTC+1 all year (no daylight saving).
+  const t = new Date(instant.getTime() + 60 * 60_000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}T${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}:00+01:00`;
 }

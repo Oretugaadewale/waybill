@@ -1,0 +1,71 @@
+name: Live checks
+
+# Read-only checks against the deployed site: after CI passes on main (once
+# Vercel is serving that commit), every morning, and on demand. The full
+# booking-and-payment journey saves a real test-mode booking, so it only runs
+# when started by hand with "allow_writes" ticked.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  schedule:
+    - cron: "17 5 * * *" # 6:17am in Lagos
+  workflow_dispatch:
+    inputs:
+      allow_writes:
+        description: "Also run the full journey (saves one paid test booking)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: live-checks
+  cancel-in-progress: false
+
+jobs:
+  live:
+    name: Live site checks
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      E2E_TARGET: live
+      WAYBILL_LIVE_URL: https://waybill-dusky.vercel.app
+      E2E_ALLOW_WRITES: ${{ inputs.allow_writes && '1' || '0' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for Vercel to serve this commit
+        if: github.event_name == 'workflow_run'
+        env:
+          WANT: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          want="${WANT:0:7}"
+          for i in $(seq 1 40); do
+            live=$(curl -fsS "$WAYBILL_LIVE_URL/api/health/payments" | jq -r '.version // empty' || true)
+            echo "live: ${live:-unknown}, want: $want"
+            [ "$live" = "$want" ] && exit 0
+            sleep 15
+          done
+          echo "::warning::The live site never reported $want; checking whatever is deployed."
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e:live
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: live-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
